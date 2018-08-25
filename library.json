@@ -1,0 +1,20 @@
+{
+  "name": "ezTime",
+  "description": "An ESP32 time library, drop-in replacement for Arduino TimeLib, does NTP, supports timezones",
+  "keywords": "esp32",
+  "authors": {
+    "name": "Rop Gonggrijp",
+    "url": "https://github.com/ropg"
+    "maintainer": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ropg/ezTime"
+  },
+  "version": "0.0.1",
+  "framework": "arduino",
+  "platforms": "espressif32"
+  "build": {
+    "libArchive": false
+  }
+}
