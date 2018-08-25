@@ -154,7 +154,7 @@ time_t EZtime::now() {
 
 void EZtime::setServer(String ntp_server /* = NTP_SERVER */) { _ntp_server = ntp_server; }
 
-void EZtime::updateNow() { _update_due = now(); now(); }
+void EZtime::updateNow() { _update_due = millis(); now(); }
 
 bool EZtime::waitForSync(uint16_t timeout /* = 0 */) {
 
