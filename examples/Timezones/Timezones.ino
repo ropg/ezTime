@@ -14,16 +14,19 @@ void setup() {
 	Serial.println();
 	Serial.println("UTC:             " + UTC.dateTime());
 
-
 	Timezone myTZ;
 
-	myTZ.setLocation("Pacific/Auckland");							// Anything with a slash in it is interpreted as an official timezone name
-	Serial.println("Auckland:        " + myTZ.dateTime());			// https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+	// Anything with a slash in it is interpreted as an official timezone name
+	// https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+	myTZ.setLocation("Pacific/Auckland");
+	Serial.println("Auckland:        " + myTZ.dateTime());
 
-	myTZ.setLocation("Paris, Texas");								// Anything else is parsed as an address to see if that resolves
+	// Anything else is parsed as an address to see if that resolves
+	myTZ.setLocation("Paris, Texas");
 	Serial.println("Paris, Texas:    " + myTZ.dateTime());
 
-	myTZ.setLocation("");											// The empty string is resolved to the GeoIP location of your IP-address 
+	// The empty string is resolved to the GeoIP location of your IP-address
+	myTZ.setLocation(""); 
 	Serial.println("Your local time: " + myTZ.dateTime());
 
 }

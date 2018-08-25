@@ -12,13 +12,13 @@ void setup() {
 	Serial.println();
 
 	for (int n = 0; n < 10; n++) {
-		Serial.println(UTC.dateTime("H:i:s.v"));
+		Serial.println(UTC.dateTime("l, d-M-y H:i:s.v T"));
 	}
 
 	Serial.println();
 	Serial.println("Those milliseconds between the first and the last line ...");
 	Serial.println();
-	Serial.println("     ... that's how long it took to get them out the serial port.");
+	Serial.println("     ... most of that is spent sending to the serial port.");
 	
 	Serial.println();
 	Serial.println();
