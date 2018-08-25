@@ -838,6 +838,7 @@ void Timezone::setTime(time_t t) {
 	t += getOffset(t);
 	ezTime._last_sync_time = t;
 	ezTime._last_sync_millis = millis();
+	ezTime._time_status = timeSet;
 }
 
 void Timezone::setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr) {
