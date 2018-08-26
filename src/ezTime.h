@@ -1,11 +1,17 @@
 #ifndef _EZTIME_H_
 #define _EZTIME_H_
 
-#include <Arduino.h>
-#include <WiFi.h>
-#include <WiFiUdp.h>
-#include <WiFiClient.h>
+#define ARDUINO_TIMELIB_COMPATIBILITY
 
+// Compiles in NTP updating and timezoneapi.io fetching 
+#define EZTIME_NETWORK_ENABLE
+
+
+#include <Arduino.h>
+
+#ifdef EZTIME_NETWORK_ENABLE
+#include <WiFi.h>
+#endif // EZTIME_NETWORK_ENABLE
 
 ////////// Error handing
 
@@ -58,8 +64,6 @@ typedef struct  {
 	time_t dst_end_in_utc;
 } tzData_t;
 
-#define ARDUINO_TIMELIB_COMPATIBILITY
-
 #define TIME_NOW			0xFFFFFFFF
 #define LAST_READ			0xFFFFFFFE
 #define NTP_PACKET_SIZE		48
@@ -107,28 +111,42 @@ class EZtime {
 	
 	public:
 		EZtime();
-		void setServer(String ntp_server = NTP_SERVER);
-		void setInterval(uint16_t seconds = 0); 				// 0 = no NTP updates
-		bool waitForSync(uint16_t timeout = 0);					// timeout in seconds
 		timeStatus_t timeStatus();
-		bool queryNTP(String server, time_t &t, unsigned long &measured_at);	// measured_at: millis() at measurement, t is converted to secs since 1970
-		void updateNow();
 		time_t now();
-		void clearCache();
 		void breakTime(time_t time, tmElements_t &tm);  // break time_t into elements
 		time_t makeTime(tmElements_t &tm);  // convert time elements into time_t
 		time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, int16_t year);
 		time_t makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, int16_t year);
 		
 	private:
-		uint16_t _update_interval;		// in seconds
 		tzData_t parsePosix(String posix, int16_t year);
-		time_t _last_sync_time, _update_due;
+		int32_t millisElapsed(unsigned long m);
+		time_t _last_sync_time;
+		int32_t _fudge;
 		unsigned long _last_sync_millis;
 		bool _debug_enabled, _ntp_enabled;
-		uint16_t _ntp_local_port, _ntp_interval, _ntp_max_drift, _last_read_ms;
-		String _ntp_server;
+		uint16_t _last_read_ms;
 		timeStatus_t _time_status;
+
+#ifdef EZTIME_NETWORK_ENABLE
+
+	public:
+		bool queryNTP(String server, time_t &t, unsigned long &measured_at);	// measured_at: millis() at measurement, t is converted to secs since 1970
+		void updateNow();
+		void setServer(String ntp_server = NTP_SERVER);
+		void setInterval(uint16_t seconds = 0); 				// 0 = no NTP updates
+		bool waitForSync(uint16_t timeout = 0);					// timeout in seconds
+#ifdef ESP32
+		void clearCache();
+#endif // ESP32
+
+	private:
+		uint16_t _update_interval;		// in seconds
+		time_t _update_due;
+		uint16_t _ntp_local_port, _ntp_interval, _ntp_max_drift;
+		String _ntp_server;
+
+#endif // EZTIME_NETWORK_ENABLE
 	
 	////////// Free extras ...
 	public:
@@ -149,8 +167,6 @@ class Timezone {
 		Timezone(bool locked_to_UTC = false);
 		bool setPosix(String posix);
 		String getPosix();
-		bool setLocation(String location, bool force_lookup = false);
-		String getOlsen();
 		void setDefault();
 		bool isDST_local(time_t t = TIME_NOW);
 		bool isDST_UTC(time_t t = TIME_NOW);
@@ -179,6 +195,14 @@ class Timezone {
 		tzData_t _tzdata;
 		String _posix, _olsen;
 		time_t _last_read_t;
+
+#ifdef EZTIME_NETWORK_ENABLE
+
+	public:
+		bool setLocation(String location, bool force_lookup = false);
+		String getOlsen();
+
+#endif // EZTIME_NETWORK_ENABLE	
 
 };
 

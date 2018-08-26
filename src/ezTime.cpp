@@ -1,17 +1,27 @@
 #include <ezTime.h>
 
+
+#ifdef EZTIME_NETWORK_ENABLE
+#ifdef ESP32
+
+// Caching of namezone data is only available on ESP32
 #include <Preferences.h>		// For timezone lookup cache
+
+#endif // ESP32
+#endif // EZTIME_NETWORK_ENABLE
 
 
 EZtime::EZtime() {
 	ezError_t _last_error = NO_ERROR;
 	ezDebugLevel_t _debug_level = NONE;
 	_time_status = timeNotSet;
+#ifdef EZTIME_NETWORK_ENABLE
 	_ntp_enabled = true;
 	_ntp_server = NTP_SERVER;
 	_ntp_local_port = NTP_LOCAL_PORT;
 	_update_due = 0;
 	_update_interval = UPDATE_INTERVAL;
+#endif // ifdef EZTIME_NETWORK_ENABLE
 }
 
 
@@ -71,66 +81,18 @@ void EZtime::debugln(ezDebugLevel_t level, String str) {
 
 timeStatus_t EZtime::timeStatus() { return _time_status; }
 
-// This is a nice self-contained NTP routine if you need one: feel free to use it.
-// It gives you the seconds since 1970 (unix epoch) and the millis() on your system when 
-// that happened (by deducting fractional seconds and estimated network latency).
-bool EZtime::queryNTP(String server, time_t &t, unsigned long &measured_at) {
-	debug(INFO, "Querying " + server + " ... ");
-
-	if (!WiFi.isConnected()) { error(NO_NETWORK); return false; }
-
-	WiFiUDP udp;
-	udp.begin(_ntp_local_port);
-	
-	// Send NTP packet
-	byte buffer[NTP_PACKET_SIZE];
-	memset(buffer, 0, NTP_PACKET_SIZE);
-	buffer[0] = 0b11100011;		// LI, Version, Mode
-	buffer[1] = 0;   			// Stratum, or type of clock
-	buffer[2] = 6;				// Polling Interval
-	buffer[3] = 0xEC;			// Peer Clock Precision
-								// 8 bytes of zero for Root Delay & Root Dispersion
-	buffer[12]  = 'X';			// "kiss code", see RFC5905
-	buffer[13]  = 'E';			// (codes starting with 'X' are not interpreted)
-	buffer[14]  = 'Z';
-	buffer[15]  = 'T';
-	udp.beginPacket(_ntp_server.c_str(), 123); //NTP requests are to port 123
-  	udp.write(buffer, NTP_PACKET_SIZE);
-	udp.endPacket();
-
-	// Wait for packet or return false with timed out
-	unsigned long started = millis();
-	while (!udp.parsePacket()) {
-		delay (1);
-		if (millis() - started > NTP_TIMEOUT) { error(TIMEOUT); return false; }
-	}
-	
-	// Set the t and measured_at variables that were passed by reference
-	unsigned long done = millis();
-	debugln(INFO, "success (round trip " + String(done - started) + " ms)");
-	udp.read(buffer, NTP_PACKET_SIZE);
-	unsigned long secsSince1900 = buffer[40] << 24 | buffer[41] << 16 | buffer[42] << 8 | buffer[43];
-	t = secsSince1900 - 2208988800UL;					// Subtract 70 years to get seconds since 1970
-	unsigned long fraction = buffer[44] << 24 | buffer[45] << 16 | buffer[46] << 8 | buffer[47];
-	uint16_t ms = fraction / 4294967UL;					// Turn 32 bit fraction into ms by dividing by 2^32 / 1000 
-	measured_at = done - ((done - started) / 2) - ms;	// Assume symmetric network latency and return when we think the whole second was.
-	return true;
-}
-
-void EZtime::setInterval(uint16_t seconds /* = 0 */) { _update_interval = seconds; }
-
 time_t EZtime::now() {
-	debugln(DEBUG, "now() entered");
 	unsigned long m  = millis();
 	time_t t;
-	
+#ifdef EZTIME_NETWORK_ENABLE	
 	if (_update_interval && (m >= _update_due) ) {
 		if (m - _update_due > 3600000) _time_status = timeNeedsSync;	// If unable to sync for an hour, timeStatus = timeNeedsSync
-		unsigned long start = millis();
 		unsigned long measured_at;
 		if (queryNTP(_ntp_server, t, measured_at)) {
-			time_t old_time = _last_sync_time + ((m - _last_sync_millis) / 1000);
-			uint16_t old_ms = (m - _last_sync_millis) % 1000;
+			time_t old_time = _last_sync_time + ((m - _last_sync_millis) / 1000);	//
+			uint16_t old_ms = (m - _last_sync_millis) % 1000;						//
+//			time_t old_time = _last_sync_time + ( millisElapsed(m) / 1000 );
+//			uint16_t old_ms = millisElapsed(m) % 1000;
 			_last_sync_time = t;
 			_last_sync_millis = measured_at;
 			uint16_t new_ms = (m - measured_at) % 1000;
@@ -140,48 +102,34 @@ time_t EZtime::now() {
 			debug(INFO, "Received time: " + UTC.dateTime(_last_sync_time, "l, d-M-y H:i:s.v T"));
 			if (_time_status != timeNotSet) {
 				debugln(INFO, " (internal clock was " + ( correction == 0 ? "spot on)" : String(abs(correction)) + " ms " + ( correction > 0 ? "slow)" : "fast)" ) ) );
+//				_fudge = 0 - correction;		// If we are corrected forward we have to fudge backward again to where we were and then slowly diminish fudgeing in millisElapsed
 			} else {
 				debugln(INFO, "");
+//				_fudge = 0;
 			}
 			_time_status = timeSet;
 		} 
 	}
-	t = _last_sync_time + ((m - _last_sync_millis) / 1000); 
-	_last_read_ms = (m - _last_sync_millis) % 1000;
+#endif // EZTIME_NETWORK_ENABLE
+	t = _last_sync_time + ((m - _last_sync_millis) / 1000); 		//
+	_last_read_ms = (m - _last_sync_millis) % 1000;					//
+//	int32_t elapsed = millisElapsed(m);
+//	t = _last_sync_time + (elapsed / 1000); 
+//	_last_read_ms = elapsed % 1000;
 	if (m < ezTime._last_sync_millis) t += 0xFFFFFFFF / 1000;				// millis() rolled over, we're assuming just once :)
 	return t;
 }
 
-void EZtime::setServer(String ntp_server /* = NTP_SERVER */) { _ntp_server = ntp_server; }
-
-void EZtime::updateNow() { _update_due = millis(); now(); }
-
-bool EZtime::waitForSync(uint16_t timeout /* = 0 */) {
-
-	unsigned long start = millis();
-
-	if (!WiFi.isConnected()) {
-		debug(INFO, "Waiting for WiFi ... ");
-		while (!WiFi.isConnected()) {
-			if ( timeout && (millis() - start) / 1000 > timeout ) { error(TIMEOUT); return false;};
-		}
-		debugln(INFO, "connected");
-	}
-
-	if (!_time_status != timeSet) {
-		debugln(INFO, "Waiting for time sync");
-		while (_time_status != timeSet) {
-			if ( timeout && (millis() - start) / 1000 > timeout ) { error(TIMEOUT); return false;};
-			delay(250);
-			now();
-		}
-		debugln(INFO, "Time is in sync");
-	}		
-	
+int32_t EZtime::millisElapsed(unsigned long m) {							// can return negative value just after NTP update if fudging
+	unsigned long elapsed = m - _last_sync_millis;
+	int32_t fudge_remaining = abs(_fudge) - (elapsed / 100);				// one ms every 100 ms, i.e. 1% clock speed change 
+	if (fudge_remaining < 0) return elapsed;
+	if (_fudge < 0) fudge_remaining = 0 - fudge_remaining;
+	elapsed += fudge_remaining;
+	return elapsed;
 }
 
 void EZtime::breakTime(time_t timeInput, tmElements_t &tm){
-	debugln(DEBUG, "breakTime entered");
 	// break the given time_t into time components
 	// this is a more compact version of the C library localtime function
 	// note that year is offset from 1970 !!!
@@ -246,42 +194,43 @@ time_t EZtime::makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t da
 }
 
 time_t EZtime::makeTime(tmElements_t &tm){
-	debugln(DEBUG, "makeTime entered");
 // assemble time elements into time_t 
 // note year argument is offset from 1970 (see macros in time.h to convert to other formats)
 // previous version used full four digit year (or digits since 2000),i.e. 2009 was 2009 or 9
-  
-  int i;
-  uint32_t seconds;
+    
+	int i;
+	uint32_t seconds;
 
-  // seconds from 1970 till 1 jan 00:00:00 of the given year
-  seconds= tm.Year * (3600 * 24 * 365);
-  for (i = 0; i < tm.Year; i++) {
-    if (LEAP_YEAR(i)) {
-      seconds +=  3600 * 24;   // add extra days for leap years
-    }
-  }
-  
-  // add days for this year, months start from 1
-  for (i = 1; i < tm.Month; i++) {
-    if ( (i == 2) && LEAP_YEAR(tm.Year)) { 
-      seconds += SECS_PER_DAY * 29;
-    } else {
-      seconds += SECS_PER_DAY * monthDays[i-1];  //monthDay array starts from 0
-    }
-  }
-  seconds+= (tm.Day-1) * SECS_PER_DAY;
-  seconds+= tm.Hour * 3600;
-  seconds+= tm.Minute * 60;
-  seconds+= tm.Second;
-  return (time_t)seconds; 
+	// seconds from 1970 till 1 jan 00:00:00 of the given year
+	seconds= tm.Year * (3600 * 24 * 365);
+
+	for (i = 0; i < tm.Year; i++) {
+		if (LEAP_YEAR(i)) {
+		  seconds +=  3600 * 24;   // add extra days for leap years
+		}
+	}
+
+	// add days for this year, months start from 1
+	for (i = 1; i < tm.Month; i++) {
+		if ( (i == 2) && LEAP_YEAR(tm.Year)) { 
+		  seconds += SECS_PER_DAY * 29;
+		} else {
+		  seconds += SECS_PER_DAY * monthDays[i-1];  //monthDay array starts from 0
+		}
+	}
+	
+	seconds+= (tm.Day-1) * SECS_PER_DAY;
+	seconds+= tm.Hour * 3600;
+	seconds+= tm.Minute * 60;
+	seconds+= tm.Second;
+	
+	return (time_t)seconds; 
 }
 
 // makeUmpteenthTime allows you to resolve "second thursday in September in 2018" into a number of seconds since 1970
 // (Very useful for the timezone calculations that ezTime does internally) 
 // If umpteenth is 0 or 5 it is taken to mean "the last $wday in $month"
 time_t EZtime::makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, int16_t year) {
-	debugln(DEBUG, "makeUmpteenthTime entered");
 	if (umpteenth == 5) umpteenth = 0;
 	uint8_t m = month;   
 	uint8_t w = umpteenth;
@@ -301,7 +250,6 @@ time_t EZtime::makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, u
 }
 
 tzData_t EZtime::parsePosix(String posix, int16_t year) {
-	debugln(DEBUG, "parsePosix entered");
 
 	tzData_t r;
 
@@ -550,13 +498,108 @@ String EZtime::urlEncode(String str) {
 	return encodedString;    
 }
 
+String EZtime::zeropad(uint32_t number, uint8_t length) {
+	String out = String(number);
+	while (out.length() < length) out = "0" + out;
+	return out;
+}
+
+String EZtime::getBetween(String &haystack, String before_needle, String after_needle /* = "" */) {
+	int16_t start = haystack.indexOf(before_needle);
+	if (start == -1) return "";
+	start += before_needle.length();
+	if (after_needle == "") return haystack.substring(start);
+	int16_t end =  haystack.indexOf(after_needle, start);
+	if (end == -1) return "";
+	return haystack.substring(start, end);
+}
+
+#ifdef EZTIME_NETWORK_ENABLE
+
+// This is a nice self-contained NTP routine if you need one: feel free to use it.
+// It gives you the seconds since 1970 (unix epoch) and the millis() on your system when 
+// that happened (by deducting fractional seconds and estimated network latency).
+bool EZtime::queryNTP(String server, time_t &t, unsigned long &measured_at) {
+	debug(INFO, "Querying " + server + " ... ");
+
+	if (!WiFi.isConnected()) { error(NO_NETWORK); return false; }
+
+	WiFiUDP udp;
+	udp.begin(_ntp_local_port);
+	
+	// Send NTP packet
+	byte buffer[NTP_PACKET_SIZE];
+	memset(buffer, 0, NTP_PACKET_SIZE);
+	buffer[0] = 0b11100011;		// LI, Version, Mode
+	buffer[1] = 0;   			// Stratum, or type of clock
+	buffer[2] = 6;				// Polling Interval
+	buffer[3] = 0xEC;			// Peer Clock Precision
+								// 8 bytes of zero for Root Delay & Root Dispersion
+	buffer[12]  = 'X';			// "kiss code", see RFC5905
+	buffer[13]  = 'E';			// (codes starting with 'X' are not interpreted)
+	buffer[14]  = 'Z';
+	buffer[15]  = 'T';
+	udp.beginPacket(_ntp_server.c_str(), 123); //NTP requests are to port 123
+  	udp.write(buffer, NTP_PACKET_SIZE);
+	udp.endPacket();
+
+	// Wait for packet or return false with timed out
+	unsigned long started = millis();
+	while (!udp.parsePacket()) {
+		delay (1);
+		if (millis() - started > NTP_TIMEOUT) { error(TIMEOUT); return false; }
+	}
+	
+	// Set the t and measured_at variables that were passed by reference
+	unsigned long done = millis();
+	debugln(INFO, "success (round trip " + String(done - started) + " ms)");
+	udp.read(buffer, NTP_PACKET_SIZE);
+	unsigned long secsSince1900 = buffer[40] << 24 | buffer[41] << 16 | buffer[42] << 8 | buffer[43];
+	t = secsSince1900 - 2208988800UL;					// Subtract 70 years to get seconds since 1970
+	unsigned long fraction = buffer[44] << 24 | buffer[45] << 16 | buffer[46] << 8 | buffer[47];
+	uint16_t ms = fraction / 4294967UL;					// Turn 32 bit fraction into ms by dividing by 2^32 / 1000 
+	measured_at = done - ((done - started) / 2) - ms;	// Assume symmetric network latency and return when we think the whole second was.
+	return true;
+}
+
+void EZtime::setInterval(uint16_t seconds /* = 0 */) { _update_interval = seconds; }
+
+void EZtime::setServer(String ntp_server /* = NTP_SERVER */) { _ntp_server = ntp_server; }
+
+void EZtime::updateNow() { _update_due = millis(); now(); }
+
+bool EZtime::waitForSync(uint16_t timeout /* = 0 */) {
+
+	unsigned long start = millis();
+
+	if (!WiFi.isConnected()) {
+		debug(INFO, "Waiting for WiFi ... ");
+		while (!WiFi.isConnected()) {
+			if ( timeout && (millis() - start) / 1000 > timeout ) { error(TIMEOUT); return false;};
+		}
+		debugln(INFO, "connected");
+	}
+
+	if (!_time_status != timeSet) {
+		debugln(INFO, "Waiting for time sync");
+		while (_time_status != timeSet) {
+			if ( timeout && (millis() - start) / 1000 > timeout ) { error(TIMEOUT); return false;};
+			delay(250);
+			now();
+		}
+		debugln(INFO, "Time is in sync");
+	}		
+	
+}
+
+#ifdef ESP32
 void EZtime::clearCache() {
 	Preferences preferences;
 	preferences.begin("ezTime", false);			// read-write
 	preferences.clear();
 	preferences.end();
 }
-
+#endif // ESP32
 
 bool EZtime::timezoneAPI(String location, String &olsen, String &posix) {
 
@@ -596,21 +639,8 @@ bool EZtime::timezoneAPI(String location, String &olsen, String &posix) {
 	}
 }
 
-String EZtime::zeropad(uint32_t number, uint8_t length) {
-	String out = String(number);
-	while (out.length() < length) out = "0" + out;
-	return out;
-}
+#endif // EZTIME_NETWORK_ENABLE
 
-String EZtime::getBetween(String &haystack, String before_needle, String after_needle /* = "" */) {
-	int16_t start = haystack.indexOf(before_needle);
-	if (start == -1) return "";
-	start += before_needle.length();
-	if (after_needle == "") return haystack.substring(start);
-	int16_t end =  haystack.indexOf(after_needle, start);
-	if (end == -1) return "";
-	return haystack.substring(start, end);
-}
 
 EZtime ezTime;
 
@@ -636,11 +666,12 @@ bool Timezone::setPosix(String posix) {
 
 String Timezone::getPosix() { return _posix;}
 
+#ifdef EZTIME_NETWORK_ENABLE
+
 bool Timezone::setLocation(String location, bool force_lookup /* = false */) {
-
 	ezTime.debugln(INFO, "Timezone lookup for: " + location);
-
-	// Cache strings: "location:olsen:year:posix"   (location can be same as olsen)
+#ifdef ESP32
+	// Caching only on ESP32
 
 	Preferences preferences;
 
@@ -692,7 +723,7 @@ bool Timezone::setLocation(String location, bool force_lookup /* = false */) {
 		_olsen = hit_olsen;		// Has to happen after setPosix because that sets _olsen to "";
 		return true;
 	}
-
+#endif // ESP32
 	ezTime.error();		// Resets last error to OK
 	ezTime.debug(INFO, "timezoneapi.io lookup ... ");
 	String olsen, posix;
@@ -703,6 +734,8 @@ bool Timezone::setLocation(String location, bool force_lookup /* = false */) {
 		_posix = posix;
 		setPosix(posix);
 		_olsen = olsen;		// Has to happen after setPosix because that sets _olsen to "";
+		
+#ifdef ESP32
 		ezTime.debugln(INFO, "Storing to cache(" + String(cache_number) + "): " + location + ":" + olsen + ":" + String(year()) + ":" + posix);
 		char key[] = "lookupcache-xx";
 		key[12] = '0' + (cache_number / 10);
@@ -718,21 +751,24 @@ bool Timezone::setLocation(String location, bool force_lookup /* = false */) {
 			setPosix(hit_posix);
 			_olsen = hit_olsen;		// Has to happen after setPosix because that sets _olsen to "";
 			return true;
-		} else {
-			ezTime.error(ezTime.error());		// This throws the last error (as generated by timezoneAPI) again.
-			return false;
 		}
 	}
+#endif // ESP32
+	ezTime.error(ezTime.error());		// This throws the last error (as generated by timezoneAPI) again.
+	return false;
+
 }
 
 String Timezone::getOlsen() { return _olsen;}
+
+#endif // EZTIME_NETWORK_ENABLE
+
 
 void Timezone::setDefault() {
 	defaultTZ = this;
 }
 
 bool Timezone::isDST() {
-	ezTime.debugln(DEBUG, "isDST entered");
 	time_t t = ezTime.now();
     if (_tzdata.dst_start_in_utc == _tzdata.dst_end_in_utc) return false;			// No DST observed here
     
@@ -744,7 +780,6 @@ bool Timezone::isDST() {
 }
 
 bool Timezone::isDST_UTC(time_t t /*= TIME_NOW */) {
-	ezTime.debugln(DEBUG, "isDST_UTC entered");
 	if (t == TIME_NOW) t = ezTime.now();
 	
 	tzData_t tz;
@@ -764,7 +799,6 @@ bool Timezone::isDST_UTC(time_t t /*= TIME_NOW */) {
 }
 
 bool Timezone::isDST_local(time_t t /*= TIME_NOW */) {
-	ezTime.debugln(DEBUG, "isDST_local entered");
 	if (t == TIME_NOW) return isDST_UTC(TIME_NOW);						//Prevent loops where timezone's now() tries to find offset
 	
 	t = _readTime(t);
@@ -794,7 +828,6 @@ String Timezone::getTimezoneName(time_t t /*= TIME_NOW */) {
 }
 
 int32_t Timezone::getOffset(time_t t /*= TIME_NOW */) {
-	ezTime.debugln(DEBUG, "getOffset entered");
 	
 	if (isDST_local(t)) {
 		return _tzdata.dst_offset;
@@ -804,9 +837,8 @@ int32_t Timezone::getOffset(time_t t /*= TIME_NOW */) {
 }
 
 time_t Timezone::now(bool update_last_read /* = true */) {
-	ezTime.debugln(DEBUG, "TZ's now() entered");
-	time_t t;
-	
+
+	time_t t;	
 	t = ezTime.now();
 	
     if (_tzdata.dst_start_in_utc == _tzdata.dst_end_in_utc) {
@@ -825,7 +857,6 @@ time_t Timezone::now(bool update_last_read /* = true */) {
 }
 
 time_t Timezone::_readTime(time_t t) {
-	ezTime.debugln(DEBUG, "_readTime entered");
 	switch (t) {
 		case TIME_NOW: return now();
 		case LAST_READ: return _last_read_t;
@@ -834,7 +865,6 @@ time_t Timezone::_readTime(time_t t) {
 }	
 
 void Timezone::setTime(time_t t) {
-	ezTime.debugln(DEBUG, "setTime entered");
 	t += getOffset(t);
 	ezTime._last_sync_time = t;
 	ezTime._last_sync_millis = millis();
@@ -842,7 +872,6 @@ void Timezone::setTime(time_t t) {
 }
 
 void Timezone::setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr) {
-	ezTime.debugln(DEBUG, "setTime entered");
 	tmElements_t tm;
 	// year can be given as full four digit year or two digts (2010 or 10 for 2010);  
 	// it is converted to years since 1970
@@ -865,7 +894,6 @@ String Timezone::dateTime(String format /* = DEFAULT_TIMEFORMAT */) {
 }
 
 String Timezone::dateTime(time_t t, String format /* = DEFAULT_TIMEFORMAT */) {
-	ezTime.debugln(DEBUG, "dateTime entered");
 	t = _readTime(t);
 	
 	String tmpstr;
@@ -1106,8 +1134,9 @@ String dayShortStr(const uint8_t day) { String tmp = english_days[day - 1]; retu
 void setTime(time_t t) { defaultTZ.setTime(t); }
 void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t month, const uint16_t yr) { defaultTZ.setTime(hr, min, sec, day, month, yr); }
 void breakTime(time_t t, tmElements_t &tm) { ezTime.breakTime(t, tm); }
-time_t makeTime(tmElements_t &tm) { ezTime.makeTime(tm); }
-time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, int16_t year) { ezTime.makeTime(hour, minute, second, day, month, year); }
+
+time_t makeTime(tmElements_t &tm) { return ezTime.makeTime(tm); }
+time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, int16_t year) { return ezTime.makeTime(hour, minute, second, day, month, year); }
 
 timeStatus_t timeStatus() { ezTime.timeStatus(); }
 
