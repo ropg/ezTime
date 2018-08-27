@@ -21,7 +21,8 @@ typedef enum {
 	NO_NETWORK, 
 	TIMEOUT,
 	CONNECT_FAILED,
-	DATA_NOT_FOUND
+	DATA_NOT_FOUND,
+	LOCKED_TO_UTC
 } ezError_t;
 
 typedef enum {

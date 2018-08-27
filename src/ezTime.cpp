@@ -35,6 +35,7 @@ String EZtime::errorString(ezError_t err) {
 		case TIMEOUT: return 			"Timeout";
 		case CONNECT_FAILED: return 	"Connect Failed";
 		case DATA_NOT_FOUND: return		"Data not found";
+		case LOCKED_TO_UTC: return		"Locked to UTC";
 		default: return					"Unkown error";
 	}
 }
@@ -677,6 +678,7 @@ Timezone::Timezone(bool locked_to_UTC /* = false */) {
 }
 
 bool Timezone::setPosix(String posix) {
+	if (_locked_to_UTC) { ezTime.error(LOCKED_TO_UTC); return false; }
 	_tzdata = ezTime.parsePosix(posix, UTC.year());
 	_olsen = "";			// Might be manually set, so delete _olsen as to not suggest a link
 }	
@@ -687,6 +689,7 @@ String Timezone::getPosix() { return _posix;}
 
 bool Timezone::setLocation(String location, bool force_lookup /* = false */) {
 	ezTime.debugln(INFO, "Timezone lookup for: " + location);
+	if (_locked_to_UTC) { ezTime.error(LOCKED_TO_UTC); return false; }
 #ifdef ESP32
 	// Caching only on ESP32
 
