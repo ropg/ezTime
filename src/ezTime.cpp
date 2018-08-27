@@ -514,6 +514,23 @@ String EZtime::getBetween(String &haystack, String before_needle, String after_n
 	return haystack.substring(start, end);
 }
 
+time_t EZtime::compileTime(String compile_date /* = __DATE__ */, String compile_time /* = __TIME__ */) {
+	uint8_t hrs = compile_time.substring(0,2).toInt();
+	uint8_t min = compile_time.substring(3,5).toInt();
+	uint8_t sec = compile_time.substring(6).toInt();
+	uint8_t day = compile_date.substring(4,6).toInt();
+	int16_t year = compile_date.substring(7).toInt();
+	String iterate_month;
+	for (uint8_t month = 1; month < 13; month++) {
+		iterate_month = english_months[month - 1];
+		if ( iterate_month.substring(0,3) == compile_date.substring(0,3) ) {
+			return makeTime(hrs, min, sec, day, month, year);
+		}
+	}
+	return 0;
+}
+
+
 #ifdef EZTIME_NETWORK_ENABLE
 
 // This is a nice self-contained NTP routine if you need one: feel free to use it.

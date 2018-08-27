@@ -117,6 +117,7 @@ class EZtime {
 		time_t makeTime(tmElements_t &tm);  // convert time elements into time_t
 		time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, int16_t year);
 		time_t makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, int16_t year);
+		time_t compileTime(String compile_date = __DATE__, String compile_time = __TIME__);
 		
 	private:
 		tzData_t parsePosix(String posix, int16_t year);
