@@ -1,14 +1,27 @@
+
+
+#include <Arduino.h>
+
 #include <ezTime.h>
 
-
 #ifdef EZTIME_NETWORK_ENABLE
-#ifdef ESP32
 
-// Caching of namezone data is only available on ESP32
+// Caching of namezone data is only available on EZTIME_NVS_ENABLE
+#ifdef EZTIME_NVS_ENABLE
 #include <Preferences.h>		// For timezone lookup cache
+#endif // EZTIME_NVS_ENABLE
 
-#endif // ESP32
+#ifdef ESP8266
+#include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
+#else
+#include <WiFi.h>
+#endif
+
 #endif // EZTIME_NETWORK_ENABLE
+
+
+const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31}; // API starts months from 1, this array starts from 0
 
 
 EZtime::EZtime() {
@@ -20,7 +33,8 @@ EZtime::EZtime() {
 	_ntp_server = NTP_SERVER;
 	_ntp_local_port = NTP_LOCAL_PORT;
 	_update_due = 0;
-	_update_interval = UPDATE_INTERVAL;
+	_update_interval = NTP_INTERVAL;
+	_update_backoff = 0;
 #endif // ifdef EZTIME_NETWORK_ENABLE
 }
 
@@ -57,7 +71,7 @@ ezError_t EZtime::error() {
 
 void EZtime::error(ezError_t err) {
 	_last_error = err;
-	debugln(ERROR, "ERROR: " + errorString(err));
+	if (_last_error) debugln(ERROR, "ERROR: " + errorString(err));
 }
 
 void EZtime::debug(ezDebugLevel_t level) { 
@@ -79,6 +93,37 @@ void EZtime::debugln(ezDebugLevel_t level, String str) {
 
 ////////////////////////
 
+String EZtime::monthString(uint8_t month) {
+	switch(month) {
+		case 1: return "January";
+		case 2: return "February";		
+		case 3: return "March";
+		case 4: return "April";
+		case 5: return "May";
+		case 6: return "June";
+		case 7: return "July";
+		case 8: return "August";
+		case 9: return "September";
+		case 10: return "October";
+		case 11: return "November";
+		case 12: return "December";
+	}
+	return "";
+}
+
+String EZtime::dayString(uint8_t day) {
+	switch(day) {
+		case 1: return "Sunday";
+		case 2: return "Monday";
+		case 3: return "Tuesday";		
+		case 4: return "Wednesday";
+		case 5: return "Thursday";
+		case 6: return "Friday";
+		case 7: return "Saturday";
+	}
+	return "";
+}
+
 
 timeStatus_t EZtime::timeStatus() { return _time_status; }
 
@@ -86,8 +131,8 @@ time_t EZtime::now() {
 	unsigned long m  = millis();
 	time_t t;
 #ifdef EZTIME_NETWORK_ENABLE	
-	if (_update_interval && (m >= _update_due) ) {
-		if (m - _update_due > 3600000) _time_status = timeNeedsSync;	// If unable to sync for an hour, timeStatus = timeNeedsSync
+	if (_update_interval && (m >= _update_due + (_update_backoff * 1000)) ) {
+		if (m - _update_due > NTP_STALE_AFTER * 1000) _time_status = timeNeedsSync;	// If unable to sync for an hour, timeStatus = timeNeedsSync
 		unsigned long measured_at;
 		if (queryNTP(_ntp_server, t, measured_at)) {
 			time_t old_time = _last_sync_time + ((m - _last_sync_millis) / 1000);	//
@@ -98,8 +143,9 @@ time_t EZtime::now() {
 			_last_sync_millis = measured_at;
 			uint16_t new_ms = (m - measured_at) % 1000;
 			int32_t correction = (t - old_time) * 1000 + new_ms - old_ms;
-			_update_due = m + _update_interval * 1000;
 			_last_read_ms = new_ms;
+			_update_due = m + _update_interval * 1000;
+			_update_backoff = 0;
 			debug(INFO, "Received time: " + UTC.dateTime(_last_sync_time, "l, d-M-y H:i:s.v T"));
 			if (_time_status != timeNotSet) {
 				debugln(INFO, " (internal clock was " + ( correction == 0 ? "spot on)" : String(abs(correction)) + " ms " + ( correction > 0 ? "slow)" : "fast)" ) ) );
@@ -109,7 +155,9 @@ time_t EZtime::now() {
 //				_fudge = 0;
 			}
 			_time_status = timeSet;
-		} 
+		} else {
+			_update_backoff += NTP_RETRY;
+		}
 	}
 #endif // EZTIME_NETWORK_ENABLE
 	t = _last_sync_time + ((m - _last_sync_millis) / 1000); 		//
@@ -203,28 +251,28 @@ time_t EZtime::makeTime(tmElements_t &tm){
 	uint32_t seconds;
 
 	// seconds from 1970 till 1 jan 00:00:00 of the given year
-	seconds= tm.Year * (3600 * 24 * 365);
+	seconds= tm.Year * SECS_PER_DAY * 365UL;
 
 	for (i = 0; i < tm.Year; i++) {
 		if (LEAP_YEAR(i)) {
-		  seconds +=  3600 * 24;   // add extra days for leap years
+		  seconds +=  SECS_PER_DAY;   // add extra days for leap years
 		}
 	}
 
 	// add days for this year, months start from 1
 	for (i = 1; i < tm.Month; i++) {
 		if ( (i == 2) && LEAP_YEAR(tm.Year)) { 
-		  seconds += SECS_PER_DAY * 29;
+		  seconds += SECS_PER_DAY * 29UL;
 		} else {
-		  seconds += SECS_PER_DAY * monthDays[i-1];  //monthDay array starts from 0
+		  seconds += SECS_PER_DAY * (uint32_t)monthDays[i-1];  //monthDay array starts from 0
 		}
 	}
 	
 	seconds+= (tm.Day-1) * SECS_PER_DAY;
-	seconds+= tm.Hour * 3600;
-	seconds+= tm.Minute * 60;
+	seconds+= tm.Hour * 3600UL;
+	seconds+= tm.Minute * 60UL;
 	seconds+= tm.Second;
-	
+		
 	return (time_t)seconds; 
 }
 
@@ -516,6 +564,7 @@ String EZtime::getBetween(String &haystack, String before_needle, String after_n
 }
 
 time_t EZtime::compileTime(String compile_date /* = __DATE__ */, String compile_time /* = __TIME__ */) {
+	
 	uint8_t hrs = compile_time.substring(0,2).toInt();
 	uint8_t min = compile_time.substring(3,5).toInt();
 	uint8_t sec = compile_time.substring(6).toInt();
@@ -523,7 +572,7 @@ time_t EZtime::compileTime(String compile_date /* = __DATE__ */, String compile_
 	int16_t year = compile_date.substring(7).toInt();
 	String iterate_month;
 	for (uint8_t month = 1; month < 13; month++) {
-		iterate_month = english_months[month - 1];
+		iterate_month = monthString(month);
 		if ( iterate_month.substring(0,3) == compile_date.substring(0,3) ) {
 			return makeTime(hrs, min, sec, day, month, year);
 		}
@@ -594,6 +643,7 @@ bool EZtime::waitForSync(uint16_t timeout /* = 0 */) {
 		debug(INFO, "Waiting for WiFi ... ");
 		while (!WiFi.isConnected()) {
 			if ( timeout && (millis() - start) / 1000 > timeout ) { error(TIMEOUT); return false;};
+			delay(25);
 		}
 		debugln(INFO, "connected");
 	}
@@ -610,14 +660,14 @@ bool EZtime::waitForSync(uint16_t timeout /* = 0 */) {
 	
 }
 
-#ifdef ESP32
+#ifdef EZTIME_NVS_ENABLE
 void EZtime::clearCache() {
 	Preferences preferences;
 	preferences.begin("ezTime", false);			// read-write
 	preferences.clear();
 	preferences.end();
 }
-#endif // ESP32
+#endif // EZTIME_NVS_ENABLE
 
 bool EZtime::timezoneAPI(String location, String &olsen, String &posix) {
 
@@ -690,8 +740,8 @@ String Timezone::getPosix() { return _posix;}
 bool Timezone::setLocation(String location, bool force_lookup /* = false */) {
 	ezTime.debugln(INFO, "Timezone lookup for: " + location);
 	if (_locked_to_UTC) { ezTime.error(LOCKED_TO_UTC); return false; }
-#ifdef ESP32
-	// Caching only on ESP32
+#ifdef EZTIME_NVS_ENABLE
+	// Caching only on EZTIME_NVS_ENABLE
 
 	Preferences preferences;
 
@@ -755,7 +805,7 @@ bool Timezone::setLocation(String location, bool force_lookup /* = false */) {
 		setPosix(posix);
 		_olsen = olsen;		// Has to happen after setPosix because that sets _olsen to "";
 		
-#ifdef ESP32
+#ifdef EZTIME_NVS_ENABLE
 		ezTime.debugln(INFO, "Storing to cache(" + String(cache_number) + "): " + location + ":" + olsen + ":" + String(year()) + ":" + posix);
 		char key[] = "lookupcache-xx";
 		key[12] = '0' + (cache_number / 10);
@@ -771,15 +821,15 @@ bool Timezone::setLocation(String location, bool force_lookup /* = false */) {
 			setPosix(hit_posix);
 			_olsen = hit_olsen;		// Has to happen after setPosix because that sets _olsen to "";
 			return true;
-		}
+		}	
+#endif // EZTIME_NVS_ENABLE
 	}
-#endif // ESP32
 	ezTime.error(ezTime.error());		// This throws the last error (as generated by timezoneAPI) again.
 	return false;
 
 }
 
-String Timezone::getOlsen() { return _olsen;}
+String Timezone::getOlsen() { return _olsen; }
 
 #endif // EZTIME_NETWORK_ENABLE
 
@@ -860,7 +910,6 @@ time_t Timezone::now(bool update_last_read /* = true */) {
 
 	time_t t;	
 	t = ezTime.now();
-	
     if (_tzdata.dst_start_in_utc == _tzdata.dst_end_in_utc) {
     	t -= _tzdata.std_offset;
     } else {
@@ -870,9 +919,7 @@ time_t Timezone::now(bool update_last_read /* = true */) {
         	t -= (t >= _tzdata.dst_end_in_utc && t < _tzdata.dst_start_in_utc) ? _tzdata.dst_offset : _tzdata.std_offset;
         }
     }
-
-	if (update_last_read) _last_read_t = t;
-	
+	if (update_last_read) _last_read_t = t;	
 	return t;
 }
 
@@ -949,14 +996,14 @@ String Timezone::dateTime(time_t t, String format /* = DEFAULT_TIMEFORMAT */) {
 					out += ezTime.zeropad(tm.Day, 2);
 					break;
 				case 'D':	// A textual representation of a day, three letters
-					tmpstr = english_days[tm.Wday - 1];
+					tmpstr = ezTime.dayString(tm.Wday);
 					out += tmpstr.substring(0,3);
 					break;
 				case 'j':	// Day of the month without leading zeros
 					out += String(tm.Day);
 					break;
 				case 'l':	// (lowercase L) A full textual representation of the day of the week
-					out += english_days[tm.Wday - 1];
+					out += ezTime.dayString(tm.Wday);
 					break;
 				case 'N':	// ISO-8601 numeric representation of the day of the week. ( 1 = Monday, 7 = Sunday )
 					tmpint8 = tm.Wday - 1;
@@ -983,13 +1030,13 @@ String Timezone::dateTime(time_t t, String format /* = DEFAULT_TIMEFORMAT */) {
 					out += String(tm.Wday);
 					break;
 				case 'F':	// A full textual representation of a month, such as January or March
-					out += english_months[tm.Month - 1];
+					out += ezTime.monthString(tm.Month);
 					break;
 				case 'm':	// Numeric representation of a month, with leading zeros
 					out += ezTime.zeropad(tm.Month, 2);
 					break;
 				case 'M':	// A short textual representation of a month, three letters
-					tmpstr = english_months[tm.Month - 1];
+					tmpstr = ezTime.monthString(tm.Month);
 					out += tmpstr.substring(0,3);
 					break;
 				case 'n':	// Numeric representation of a month, without leading zeros
@@ -1146,10 +1193,10 @@ uint8_t hourFormat12(time_t t = TIME_NOW) { return (defaultTZ.hour(t) % 12); }
 bool isAM(time_t t = TIME_NOW) { return (defaultTZ.hour(t) < 12) ? true : false; }
 bool isPM(time_t t = TIME_NOW) { return (defaultTZ.hour(t) >= 12) ? true : false; } 
 
-String monthStr(const uint8_t month) { return english_months[month - 1]; }
-String monthShortStr(const uint8_t month) { String tmp = english_months[month - 1]; return tmp.substring(0,3); }
-String dayStr(const uint8_t day) { return english_days[day - 1]; }
-String dayShortStr(const uint8_t day) { String tmp = english_days[day - 1]; return tmp.substring(0,3); }
+String monthStr(const uint8_t month) { return ezTime.monthString(month); }
+String monthShortStr(const uint8_t month) { String tmp = ezTime.monthString(month); return tmp.substring(0,3); }
+String dayStr(const uint8_t day) { return ezTime.dayString(day); }
+String dayShortStr(const uint8_t day) { String tmp = ezTime.dayString(day); return tmp.substring(0,3); }
 
 void setTime(time_t t) { defaultTZ.setTime(t); }
 void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t month, const uint16_t yr) { defaultTZ.setTime(hr, min, sec, day, month, yr); }

@@ -6,12 +6,26 @@
 // Compiles in NTP updating and timezoneapi.io fetching 
 #define EZTIME_NETWORK_ENABLE
 
+// On espressif turn on NVS storage (with "Preferences")
+#if defined (ESP32)		// This syntax so we can add " || defined (SOMEOTHER"
+#define EZTIME_NVS_ENABLE
+#endif  
 
-#include <Arduino.h>
 
-#ifdef EZTIME_NETWORK_ENABLE
-#include <WiFi.h>
-#endif // EZTIME_NETWORK_ENABLE
+
+#if !defined(__time_t_defined) // avoid conflict with newlib or other posix libc
+typedef unsigned long time_t;
+#endif
+
+#include <inttypes.h>
+#ifndef __AVR__
+#include <sys/types.h> // for __time_t_defined, but avr libc lacks sys/types.h
+#endif
+
+#if !defined(__time_t_defined) // avoid conflict with newlib or other posix libc
+typedef unsigned long time_t;
+#endif
+
 
 ////////// Error handing
 
@@ -67,11 +81,14 @@ typedef struct  {
 
 #define TIME_NOW			0xFFFFFFFF
 #define LAST_READ			0xFFFFFFFE
+
 #define NTP_PACKET_SIZE		48
 #define NTP_LOCAL_PORT		2342
 #define NTP_SERVER			"pool.ntp.org"
 #define NTP_TIMEOUT			1500			// milliseconds
-#define UPDATE_INTERVAL		600				// default update interval in seconds
+#define NTP_INTERVAL		600				// default update interval in seconds
+#define NTP_RETRY			3				// Retry after this many seconds on failed NTP
+#define NTP_STALE_AFTER		3600			// If update due for this many seconds, set timeStatus to timeNeedsSync
 
 // Various date-time formats
 #define ATOM 				"Y-m-d\\TH:i:sP"
@@ -87,10 +104,6 @@ typedef struct  {
 #define RSS					"D, d M Y H:i:s O"
 #define W3C					"Y-m-d\\TH:i:sP"
 #define DEFAULT_TIMEFORMAT	RFC850
-
-static const char * english_months[] PROGMEM = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
-static const char * english_days[] PROGMEM = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" , "Saturday" };
-static const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31}; // API starts months from 1, this array starts from 0
 
 class EZtime {
 
@@ -119,6 +132,8 @@ class EZtime {
 		time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, int16_t year);
 		time_t makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, int16_t year);
 		time_t compileTime(String compile_date = __DATE__, String compile_time = __TIME__);
+		String monthString(uint8_t month);
+		String dayString(uint8_t day);
 		
 	private:
 		tzData_t parsePosix(String posix, int16_t year);
@@ -145,6 +160,7 @@ class EZtime {
 	private:
 		uint16_t _update_interval;		// in seconds
 		time_t _update_due;
+		uint16_t _update_backoff;		// seconds to add to _update_due to retry NTP
 		uint16_t _ntp_local_port, _ntp_interval, _ntp_max_drift;
 		String _ntp_server;
 

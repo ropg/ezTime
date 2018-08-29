@@ -242,8 +242,6 @@ berlin.setLocation("Europe/Berlin");
 
 # ezTime: complete documentation
 
-`#include <ezTime.h>` includes the library, creates `ezTime` object and `UTC` instance of `Timezone` class, as well as `defaultTZ`, which is a reference to UTC unless you set it to another timzone by calling `someTZ.setDefault()`. 
-
 ## Index
 
 * ezTime object
@@ -290,95 +288,134 @@ berlin.setLocation("Europe/Berlin");
 	* year
 
 
-## Work in progress...
+## Documentation
 
+### Starting it all
 
+It all starts when you include the library with  `#include <ezTime.h>`. From that point forward there is an object instance called `ezTime` with methods to control the behaviour of ezTime, as well as a timezone object called `UTC`. But nothing happens until you ask the library what time it is. This can be done by using any of the methods that tell time, like the `.dateTime` method of the timezone object. For instance, your code could do 
+`Serial.println(UTC.dateTime());` to print a complete textual representation of date and time to the serial port. The library would find out that time had not been synchronized yet, and it would send off an NTP request to one of the NTP servers that `pool.ntp.org` resolves to. If your Arduino has just woken up, it is probably not connected to the WiFi network just yet, and so the call to `.dateTime` would return a String with the date and time just after midnight on the 1st of January 1970: the zero-point for the unix-style time counter used by ezTime.
 
-`bool setPosix(String posix)`
+## Setting and synchronising time
 
-`String getPosix()`
+The NTP request from the scenario above failed because the network wasn't up yet, so the clock would still not be synchronized. Subsequent requests will retry the NTP query, but only if they happen at least 3 seconds later. (These 3 seconds are settable with the `NTP_RETRY` define from `ezTime.h`.) 
 
-`void setDefault()`
+### ezTime.timeStatus
 
-`bool isDST_local(time_t t = TIME_NOW)`
+`timeStatus_t ezTime.timeStatus();`
 
-`bool isDST_UTC(time_t t = TIME_NOW)`
+Returns what state the clock is in. `ezTime.timeStatus()` will return either `timeNotSet`, `timeNeedsSync` or `timeSet`.
 
-`bool isDST()`
+* `timeNotSet` means no NTP update or other setting of the clock (with the `.settime` method) has taken place
+* `timeSet` means the clock should have the current time
+*  `timeNeedsSync` means a scheduled NTP request has been due for more than an hour. (The time an update needs to be due before `timeNeedsSync` is set is configured by the `NTP_STALE_AFTER` define in the `ezTime.h` file.)
 
-`String getTimezoneName(time_t t = TIME_NOW)`
+### ezTime.waitForSync
 
-`int32_t getOffset(time_t t = TIME_NOW)`
+`bool ezTime.waitForSync(uint16_t timeout = 0);`
 
-`time_t now(bool update_last_read = true)`
+If your code uses timezones other than UTC, it might want to wait to initialise them until there is a valid time to see if the cached timezone definitions are still current. And if you are displaying a calendar or clock, it might look silly if it first says midnight on January 1st 1970 before showing the real time. `ezTime.waitForSync` will wait for the network to connect, and then for the time to be synchronized before returning `true`. If you specify a timeout (in seconds), it will return after that many seconds even if the clock is not in sync yet, returning `false`.
 
-`void setTime(time_t t)`
+### ezTime.setServer and ezTime.setInterval
 
-`void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr)`
+`void ezTime.setServer(String ntp_server = NTP_SERVER);`
 
-`String dateTime(String format = DEFAULT_TIMEFORMAT)`
+`void ezTime.setInterval(uint16_t seconds = 0);`
 
-`String dateTime(time_t t, String format = DEFAULT_TIMEFORMAT)`
+By default, ezTime is set to poll `pool.ntp.org` every 10 minutes. These defaults should work for most people, but you can change them by specifying a new server with `ezTime.setServer` or a new interval (in seconds) with ezTime.setInterval. If you call setInterval with an interval of 0 seconds or call it as `ezTime.setInterval()`, no more NTP queries will be made.
 
-`uint8_t hour(time_t t = TIME_NOW)`
+### ezTime.updateNow
 
-`uint8_t minute(time_t t = TIME_NOW)`
+`void ezTime.updateNow();`
 
-`uint8_t second(time_t t = TIME_NOW)`
+Schedules the next update to happen immediately, and then tries to query the NTP server. If that fails, it will keep retrying every 3 seconds.
 
-`uint16_t ms(time_t t = TIME_NOW)`
+### ezTime.queryNTP
 
-`uint8_t day(time_t t = TIME_NOW)`
+`bool ezTime.queryNTP(String server, time_t &t, unsigned long &measured_at);`
 
-`uint8_t weekday(time_t t = TIME_NOW)`
+This will send a single query to the NTP server your specify. It will put, in the `t` and `measured_at` variables passed by reference, the UTC unix-time and the `millis()` counter at the time the exact second happened. It does this by subtracting from `millis()` the fractional seconds received in the answer, as well as half the time it took to get an answer. This means it assumes the network delay was symmetrical, meaning it took just as long for the request to get to the server as for the answer to get back. 
 
-`uint8_t month(time_t t = TIME_NOW)`
+If the time server answers, `ezTime.queryNTP` returns `true`. If `false` is returned, `ezTime.error()` will return either `NO_NETWORK` (if the WiFi is not connected) or `TIMEOUT` if a response took more than 1500 milliseconds (defined by `NTP_TIMEOUT` in `ezTime.h`). 
 
-`uint16_t year(time_t t = TIME_NOW)`
+Note that this function is used internally by ezTime, but does not by itself set the time ezTime keeps. You will likely never need to call this from your code.
 
-`bool secondChanged()`
+## Errors and debug information
 
-`bool minuteChanged()`
+`void ezTime.debug(ezDebugLevel_t level);`
 
+`ezError_t ezTime.error();`
 
-`void breakTime(time_t time, tmElements_t &tm)`
+`String ezTime.errorString(ezError_t err);`
 
-`void clearCache();`
+## Timezones
 
-`time_t compileTime(String compile_date = __DATE__, String compile_time = __TIME__);`
+`#include <ezTime.h>` includes the library, creates `ezTime` object and `UTC` instance of `Timezone` class, as well as `defaultTZ`, which is a reference to UTC unless you set it to another timzone by calling `someTZ.setDefault()`. 
 
-`void debug(ezDebugLevel_t level);`
+`bool someTZ.setPosix(String posix)`
 
-`ezError_t error();`
+`String someTZ.getPosix()`
 
-`String errorString(ezError_t err);`
+`void someTZ.setDefault()`
 
-`String getBetween(String &haystack, String before_needle, String after_needle = "");`
+`bool someTZ.isDST_local(time_t t = TIME_NOW)`
 
-`time_t makeTime(tmElements_t &tm);`
+`bool someTZ.isDST_UTC(time_t t = TIME_NOW)`
 
-`time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, int16_t year);`
+`bool someTZ.isDST()`
 
-`time_t makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, int16_t year);`
+`String someTZ.getTimezoneName(time_t t = TIME_NOW)`
 
-`time_t now();`
+`int32_t someTZ.getOffset(time_t t = TIME_NOW)`
 
-`bool queryNTP(String server, time_t &t, unsigned long &measured_at);`
+`bool ezTime.timezoneAPI(String location, String &olsen, String &posix);`
 
-`void setInterval(uint16_t seconds = 0);`
+## Getting/setting date and time
 
-`void setServer(String ntp_server = NTP_SERVER);`
+`time_t someTZ.now(bool update_last_read = true)`
 
-`timeStatus_t timeStatus();`
+`void someTZ.setTime(time_t t)`
 
-`bool timezoneAPI(String location, String &olsen, String &posix);`
+`void someTZ.setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr)`
 
-`void updateNow();`
+```
+String someTZ.dateTime(String format = DEFAULT_TIMEFORMAT);
+String someTZ.dateTime(time_t t, String format = DEFAULT_TIMEFORMAT);
+```
+
+```
+uint8_t someTZ.hour(time_t t = TIME_NOW);
+uint8_t someTZ.minute(time_t t = TIME_NOW);
+uint8_t someTZ.second(time_t t = TIME_NOW);
+uint16_t someTZ.ms(time_t t = TIME_NOW);
+uint8_t someTZ.day(time_t t = TIME_NOW);
+uint8_t someTZ.weekday(time_t t = TIME_NOW);
+uint8_t someTZ.month(time_t t = TIME_NOW);
+uint16_t someTZ.year(time_t t = TIME_NOW);
+```
+
+```
+bool someTZ.secondChanged();
+bool someTZ.minuteChanged();
+```
+
+## Compatibility with Arduino `Time` library
+
+`time_t ezTime.makeTime(tmElements_t &tm);`
+
+`time_t ezTime.makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, int16_t year);`
+
+`void ezTime.breakTime(time_t time, tmElements_t &tm)`
+
+## Various functions
+
+`time_t ezTime.makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, int16_t year);`
+
+`time_t ezTime.compileTime(String compile_date = __DATE__, String compile_time = __TIME__);`
+
+`String ezTime.getBetween(String &haystack, String before_needle, String after_needle = "");`
 
 `String urlEncode(String str);`
 
-`bool waitForSync(uint16_t timeout = 0);`
-
 `String zeropad(uint32_t number, uint8_t length);`
 
-
+`void ezTime.clearCache();`

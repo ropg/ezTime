@@ -12,7 +12,6 @@
 
 
 #include <ezTime.h>
-#include <WiFi.h>
 
 #define LOCALTZ_POSIX	"PST+8PDT,M3.2.0/2,M11.1.0/2"		// US Pacific time
 
