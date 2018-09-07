@@ -6,7 +6,7 @@
 
 &nbsp;
 
-<div style="text-align:center"><img src ="images/moving-clock.gif" /></div>
+<center><img src ="images/moving-clock.gif" /></center>
 
 ## A brief history of ezTime
 
