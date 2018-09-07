@@ -1,65 +1,75 @@
-
-
 #include <Arduino.h>
 
 #include <ezTime.h>
 
 #ifdef EZTIME_NETWORK_ENABLE
-
-// Caching of namezone data is only available on EZTIME_NVS_ENABLE
-#ifdef EZTIME_NVS_ENABLE
-#include <Preferences.h>		// For timezone lookup cache
-#endif // EZTIME_NVS_ENABLE
-
-#ifdef ESP8266
-#include <ESP8266WiFi.h>
-#include <WiFiUdp.h>
-#else
-#include <WiFi.h>
+	#ifdef EZTIME_CACHE_NVS
+		#include <Preferences.h>		// For timezone lookup cache
+	#endif
+	#ifdef EZTIME_CACHE_EEPROM
+		#include <EEPROM.h>
+	#endif	
+	#if defined(ESP8266)
+		#include <ESP8266WiFi.h>
+		#include <WiFiUdp.h>
+	#elif defined(EZTIME_ETHERNET)
+		#include <SPI.h>
+		#include <Ethernet.h>
+		#include <EthernetUdp.h>
+	#else
+		#include <WiFi.h>
+	#endif
 #endif
-
-#endif // EZTIME_NETWORK_ENABLE
 
 
 const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31}; // API starts months from 1, this array starts from 0
 
 
-EZtime::EZtime() {
-	ezError_t _last_error = NO_ERROR;
-	ezDebugLevel_t _debug_level = NONE;
-	_time_status = timeNotSet;
+ezError_t EZtime::_last_error = NO_ERROR;
+ezDebugLevel_t EZtime::_debug_level = NONE;	
+time_t EZtime::_last_sync_time = 0;
+time_t EZtime::_last_read_t = 0;
+uint32_t EZtime::_last_sync_millis = 0;
+uint16_t EZtime::_last_read_ms;
+timeStatus_t EZtime::_time_status = timeNotSet;
+
 #ifdef EZTIME_NETWORK_ENABLE
-	_ntp_enabled = true;
-	_ntp_server = NTP_SERVER;
-	_ntp_local_port = NTP_LOCAL_PORT;
-	_update_due = 0;
-	_update_interval = NTP_INTERVAL;
-	_update_backoff = 0;
-#endif // ifdef EZTIME_NETWORK_ENABLE
+	bool EZtime::_ntp_enabled = true;
+	uint32_t EZtime::_update_due = 0;
+	uint16_t EZtime::_update_backoff = 0;		// seconds to add to _update_due to retry NTP
+	uint16_t EZtime::_update_interval = NTP_INTERVAL;
+	String EZtime::_ntp_server = NTP_SERVER;
+#endif
+
+
+EZtime::EZtime() {
+
 }
 
 
 ////////// Error handing
 
-String EZtime::errorString(ezError_t err) {
+String EZtime::errorString(ezError_t err /* = LAST_ERROR */) {
 	switch (err) {
-		case NO_ERROR: return			"OK";
-		case LAST_ERROR: return 		errorString(_last_error);
-		case NO_NETWORK: return			"No network";
-		case TIMEOUT: return 			"Timeout";
-		case CONNECT_FAILED: return 	"Connect Failed";
-		case DATA_NOT_FOUND: return		"Data not found";
-		case LOCKED_TO_UTC: return		"Locked to UTC";
-		default: return					"Unkown error";
+		case NO_ERROR: return				F("OK");
+		case LAST_ERROR: return 			errorString(_last_error);
+		case NO_NETWORK: return				F("No network");
+		case TIMEOUT: return 				F("Timeout");
+		case CONNECT_FAILED: return 		F("Connect Failed");
+		case DATA_NOT_FOUND: return			F("Data not found");
+		case LOCKED_TO_UTC: return			F("Locked to UTC");
+		case NO_CACHE_SET: return			F("No cache set");
+		case CACHE_TOO_SMALL: return		F("Cache too small");
+		default: return						F("Unkown error");
 	}
 }
 
 String EZtime::debugLevelString(ezDebugLevel_t level) {
 	switch (level) {
-		case NONE: return "NONE";
-		case ERROR: return "ERROR";
-		case INFO: return "INFO";
-		case DEBUG: return "DEBUG";
+		case NONE: return 	F("NONE");
+		case ERROR: return 	F("ERROR");
+		case INFO: return 	F("INFO");
+		case DEBUG: return 	F("DEBUG");
 	}
 }
 
@@ -71,55 +81,47 @@ ezError_t EZtime::error() {
 
 void EZtime::error(ezError_t err) {
 	_last_error = err;
-	if (_last_error) debugln(ERROR, "ERROR: " + errorString(err));
+	if (_last_error) {
+		err(F("ERROR: "));
+		errln(errorString(err));
+	}
 }
 
-void EZtime::debug(ezDebugLevel_t level) { 
+void EZtime::debugLevel(ezDebugLevel_t level) { 
 	_debug_level = level;
-	debugln(INFO, "\r\nezTime debug level set to " + debugLevelString(level));
-}
-
-void EZtime::debug(ezDebugLevel_t level, String str) { 
-	if (_debug_level >= level) {
-		Serial.print(str); 
-	}
-}
-
-void EZtime::debugln(ezDebugLevel_t level, String str) {
-	if (_debug_level >= level) {
-		Serial.println(str); 
-	}
+	info(F("\r\nezTime debug level set to "));
+	infoln(debugLevelString(level));
 }
 
 ////////////////////////
 
 String EZtime::monthString(uint8_t month) {
 	switch(month) {
-		case 1: return "January";
-		case 2: return "February";		
-		case 3: return "March";
-		case 4: return "April";
-		case 5: return "May";
-		case 6: return "June";
-		case 7: return "July";
-		case 8: return "August";
-		case 9: return "September";
-		case 10: return "October";
-		case 11: return "November";
-		case 12: return "December";
+		case 1: return  F("January");
+		case 2: return  F("February");		
+		case 3: return  F("March");
+		case 4: return  F("April");
+		case 5: return  F("May");
+		case 6: return  F("June");
+		case 7: return  F("July");
+		case 8: return  F("August");
+		case 9: return  F("September");
+		case 10: return F("October");
+		case 11: return F("November");
+		case 12: return F("December");
 	}
 	return "";
 }
 
 String EZtime::dayString(uint8_t day) {
 	switch(day) {
-		case 1: return "Sunday";
-		case 2: return "Monday";
-		case 3: return "Tuesday";		
-		case 4: return "Wednesday";
-		case 5: return "Thursday";
-		case 6: return "Friday";
-		case 7: return "Saturday";
+		case 1: return F("Sunday");
+		case 2: return F("Monday");
+		case 3: return F("Tuesday");		
+		case 4: return F("Wednesday");
+		case 5: return F("Thursday");
+		case 6: return F("Friday");
+		case 7: return F("Saturday");
 	}
 	return "";
 }
@@ -127,55 +129,18 @@ String EZtime::dayString(uint8_t day) {
 
 timeStatus_t EZtime::timeStatus() { return _time_status; }
 
-time_t EZtime::now() {
-	unsigned long m  = millis();
+time_t EZtime::now(bool update_last_read /* = true */) {
+	#ifdef EZTIME_NETWORK_ENABLE	
+		updateIfNeeded();
+	#endif
 	time_t t;
-#ifdef EZTIME_NETWORK_ENABLE	
-	if (_update_interval && (m >= _update_due + (_update_backoff * 1000)) ) {
-		if (m - _update_due > NTP_STALE_AFTER * 1000) _time_status = timeNeedsSync;	// If unable to sync for an hour, timeStatus = timeNeedsSync
-		unsigned long measured_at;
-		if (queryNTP(_ntp_server, t, measured_at)) {
-			time_t old_time = _last_sync_time + ((m - _last_sync_millis) / 1000);	//
-			uint16_t old_ms = (m - _last_sync_millis) % 1000;						//
-//			time_t old_time = _last_sync_time + ( millisElapsed(m) / 1000 );
-//			uint16_t old_ms = millisElapsed(m) % 1000;
-			_last_sync_time = t;
-			_last_sync_millis = measured_at;
-			uint16_t new_ms = (m - measured_at) % 1000;
-			int32_t correction = (t - old_time) * 1000 + new_ms - old_ms;
-			_last_read_ms = new_ms;
-			_update_due = m + _update_interval * 1000;
-			_update_backoff = 0;
-			debug(INFO, "Received time: " + UTC.dateTime(_last_sync_time, "l, d-M-y H:i:s.v T"));
-			if (_time_status != timeNotSet) {
-				debugln(INFO, " (internal clock was " + ( correction == 0 ? "spot on)" : String(abs(correction)) + " ms " + ( correction > 0 ? "slow)" : "fast)" ) ) );
-//				_fudge = 0 - correction;		// If we are corrected forward we have to fudge backward again to where we were and then slowly diminish fudgeing in millisElapsed
-			} else {
-				debugln(INFO, "");
-//				_fudge = 0;
-			}
-			_time_status = timeSet;
-		} else {
-			_update_backoff += NTP_RETRY;
-		}
+	uint32_t m = millis();
+	t = _last_sync_time + ((m - _last_sync_millis) / 1000);
+	if (update_last_read) {
+		_last_read_t = t;
+		_last_read_ms = (m - _last_sync_millis) % 1000;
 	}
-#endif // EZTIME_NETWORK_ENABLE
-	t = _last_sync_time + ((m - _last_sync_millis) / 1000); 		//
-	_last_read_ms = (m - _last_sync_millis) % 1000;					//
-//	int32_t elapsed = millisElapsed(m);
-//	t = _last_sync_time + (elapsed / 1000); 
-//	_last_read_ms = elapsed % 1000;
-	if (m < ezTime._last_sync_millis) t += 0xFFFFFFFF / 1000;				// millis() rolled over, we're assuming just once :)
 	return t;
-}
-
-int32_t EZtime::millisElapsed(unsigned long m) {							// can return negative value just after NTP update if fudging
-	unsigned long elapsed = m - _last_sync_millis;
-	int32_t fudge_remaining = abs(_fudge) - (elapsed / 100);				// one ms every 100 ms, i.e. 1% clock speed change 
-	if (fudge_remaining < 0) return elapsed;
-	if (_fudge < 0) fudge_remaining = 0 - fudge_remaining;
-	elapsed += fudge_remaining;
-	return elapsed;
 }
 
 void EZtime::breakTime(time_t timeInput, tmElements_t &tm){
@@ -231,14 +196,18 @@ void EZtime::breakTime(time_t timeInput, tmElements_t &tm){
 	tm.Day = time + 1;     // day of month
 }
 
-time_t EZtime::makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, int16_t year) {
+time_t EZtime::makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, uint16_t year) {
 	tmElements_t tm;
 	tm.Hour = hour;
 	tm.Minute = minute;
 	tm.Second = second;
 	tm.Day = day;
 	tm.Month = month;
-	tm.Year = year - 1970;
+	if (year > 68) {			// time_t cannot reach beyond 68 + 1970 anyway, so if bigger user means actual years
+		tm.Year = year - 1970;
+	} else {
+		tm.Year = year;
+	}
 	return makeTime(tm);
 }
 
@@ -279,7 +248,8 @@ time_t EZtime::makeTime(tmElements_t &tm){
 // makeUmpteenthTime allows you to resolve "second thursday in September in 2018" into a number of seconds since 1970
 // (Very useful for the timezone calculations that ezTime does internally) 
 // If umpteenth is 0 or 5 it is taken to mean "the last $wday in $month"
-time_t EZtime::makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, int16_t year) {
+time_t EZtime::makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, uint16_t year) {
+	if (year <= 68 ) year = 1970 + year;		// fix user intent
 	if (umpteenth == 5) umpteenth = 0;
 	uint8_t m = month;   
 	uint8_t w = umpteenth;
@@ -292,229 +262,10 @@ time_t EZtime::makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, u
 	}
 	time_t t = makeTime(hour, minute, second, 1, m, year);
 	// add offset from the first of the month to weekday, and offset for the given week
-	t += ( (wday - weekday(t) + 7) % 7 + (w - 1) * 7 ) * SECS_PER_DAY;
+	t += ( (wday - UTC.weekday(t) + 7) % 7 + (w - 1) * 7 ) * SECS_PER_DAY;
 	// back up a week if this is a "Last" rule
 	if (umpteenth == 0) t -= 7 * SECS_PER_DAY;
 	return t;
-}
-
-tzData_t EZtime::parsePosix(String posix, int16_t year) {
-
-	tzData_t r;
-
-	r.dst_start_in_local = 0;
-	r.dst_end_in_local = 0;
-	r.dst_start_in_utc = 0;
-	r.dst_end_in_utc = 0;
-
-	int8_t offset_hr = 0;
-	uint8_t offset_min = 0;
-	int8_t dst_shift_hr = 1;
-	uint8_t dst_shift_min = 0;
-	
-	uint8_t start_month = 0, start_week = 0, start_dow = 0, start_time_hr = 2, start_time_min = 0;
-	uint8_t end_month = 0, end_week = 0, end_dow = 0, end_time_hr = 2, end_time_min = 0;
-	
-	enum posix_state_e {STD_NAME, OFFSET_HR, OFFSET_MIN, DST_NAME, DST_SHIFT_HR, DST_SHIFT_MIN, START_MONTH, START_WEEK, START_DOW, START_TIME_HR, START_TIME_MIN, END_MONTH, END_WEEK, END_DOW, END_TIME_HR, END_TIME_MIN};
-	posix_state_e state = STD_NAME; 
-
-	uint8_t offset = 0;
-	String cur_str = "";
-	bool ignore_nums = false;
-	
-	for (uint8_t offset = 0; offset < posix.length(); offset++) {
-		String newchar = posix.substring(offset, offset + 1);
-	
-		// Do not replace the code below with switch statement: evaluation of state that 
-		// changes while this runs. (Only works because this state can only go forward.)
-	
-		if (state == STD_NAME) {
-			if (newchar == "<") ignore_nums = true;
-			if (newchar == ">") ignore_nums = false;
-			if (!ignore_nums && (isDigit((int)newchar.c_str()[0]) || newchar == "-"  || newchar == "+")) {
-				state = OFFSET_HR;
-				cur_str = "";
-			} else {
-				cur_str += newchar;
-				r.std_tzname = cur_str;
-			}
-		}
-		if (state == OFFSET_HR) {
-			if (newchar == "+") {
-				newchar = "";
-			} else if (newchar == ":") {
-				state = OFFSET_MIN;
-				cur_str = "";
-				newchar = ""; 					// ignore the ":"
-			} else if (newchar != "-" && !isDigit((int)newchar.c_str()[0])) {
-				state = DST_NAME;
-				cur_str = "";
-			} else {
-				cur_str += newchar;
-				offset_hr = cur_str.toInt();
-			}
-		}			
-		if (state == OFFSET_MIN) {
-			if (newchar != "" && !isDigit((int)newchar.c_str()[0])) {
-				state = DST_NAME;
-				ignore_nums = false;
-				cur_str = "";
-			} else {
-				cur_str += newchar;
-				offset_min = cur_str.toInt();
-			}
-		}				
-		if (state == DST_NAME) {
-			if (newchar == "<") ignore_nums = true;
-			if (newchar == ">") ignore_nums = false;
-			if (newchar == ",") {
-				state = START_MONTH;
-				cur_str = "";
-				newchar = "";					// ignore the ","
-			} else if (!ignore_nums && (newchar == "-" || isDigit((int)newchar.c_str()[0]))) {
-				state = DST_SHIFT_HR;
-				cur_str = "";
-			} else {
-				cur_str += newchar;
-				r.dst_tzname = cur_str;
-			}
-		}		
-		if (state == DST_SHIFT_HR) {
-			if (newchar == ":") {
-				state = DST_SHIFT_MIN;
-				cur_str = "";
-				newchar = ""; 					// ignore the ":"
-			} else if (newchar == ",") {
-				state = START_MONTH;
-				cur_str = "";
-				newchar="";
-			} else {
-				cur_str += newchar;
-				dst_shift_hr = cur_str.toInt();
-			}
-		}			
-		if (state == DST_SHIFT_MIN) {
-			if (newchar == ",") {
-				state = START_MONTH;
-				cur_str = "";
-				newchar="";
-			} else {
-				cur_str += newchar;
-				dst_shift_min = cur_str.toInt();
-			}
-		}			
-		if (state == START_MONTH) {
-			if (newchar == ".") {
-				state = START_WEEK;
-				cur_str = "";
-				newchar = "";
-			} else if (newchar != "M") {
-				cur_str += newchar;
-				start_month = cur_str.toInt();				
-			}
-		}			
-		if (state == START_WEEK) {
-			if (newchar == ".") {
-				state = START_DOW;
-				cur_str = "";
-				newchar = "";
-			} else {
-				cur_str += newchar;
-				start_week = cur_str.toInt();				
-			}
-		}		
-		if (state == START_DOW) {
-			if (newchar == "/") {
-				state = START_TIME_HR;
-				cur_str = "";
-				newchar = "";
-			} else if (newchar == ",") {
-				state = END_MONTH;
-				cur_str = "";
-				newchar = "";				
-			} else {
-				cur_str += newchar;
-				start_dow = cur_str.toInt();				
-			}
-		}
-		if (state == START_TIME_HR) {
-			if (newchar == ":") {
-				state = START_TIME_MIN;
-				cur_str = "";
-				newchar = ""; 					// ignore the ":"
-			} else if (newchar == ",") {
-				state = END_MONTH;
-				cur_str = "";
-				newchar = ""; 					// ignore the ":"
-			} else {
-				cur_str += newchar;
-				start_time_hr = cur_str.toInt();
-			}
-		}		
-		if (state == START_TIME_MIN) {
-			if (newchar == ",") {
-				state = END_MONTH;
-				cur_str = "";
-				newchar = "";
-			} else {
-				cur_str += newchar;
-				start_time_min = cur_str.toInt();
-			}
-		}		
-		if (state == END_MONTH) {
-			if (newchar == ".") {
-				state = END_WEEK;
-				cur_str = "";
-				newchar = "";
-			} else if (newchar != "M") {
-				cur_str += newchar;
-				end_month = cur_str.toInt();				
-			}
-		}			
-		if (state == END_WEEK) {
-			if (newchar == ".") {
-				state = END_DOW;
-				cur_str = "";
-				newchar = "";
-			} else {
-				cur_str += newchar;
-				end_week = cur_str.toInt();				
-			}
-		}		
-		if (state == END_DOW) {
-			if (newchar == "/") {
-				state = END_TIME_HR;
-				cur_str = "";
-				newchar = "";			
-			} else {
-				cur_str += newchar;
-				end_dow = cur_str.toInt();				
-			}
-		}
-		if (state == END_TIME_HR) {
-			if (newchar == ":") {
-				state = END_TIME_MIN;
-				cur_str = "";
-				newchar = ""; 					// ignore the ":"
-			}  else {
-				cur_str += newchar;
-				end_time_hr = cur_str.toInt();
-			}
-		}		
-		if (state == END_TIME_MIN) {
-			cur_str += newchar;
-			end_time_min = cur_str.toInt();
-		}
-	}	
-	r.std_offset = (offset_hr < 0) ? offset_hr * 3600 - offset_min * 60 : offset_hr * 3600 + offset_min * 60;
-	r.dst_offset = r.std_offset - dst_shift_hr * 3600 - dst_shift_min * 60;
-	if (start_month) {
-		r.dst_start_in_local = ezTime.makeUmpteenthTime(start_time_hr, start_time_min, 0, start_week, start_dow, start_month, year);
-		r.dst_end_in_local = ezTime.makeUmpteenthTime(end_time_hr, end_time_min, 0, end_week, end_dow, end_month, year);
-		r.dst_start_in_utc = r.dst_start_in_local - r.std_offset;
-		r.dst_end_in_utc = r.dst_end_in_local - r.dst_offset;
-	}
-	return r;
 }
 
 String EZtime::urlEncode(String str) {
@@ -548,19 +299,11 @@ String EZtime::urlEncode(String str) {
 }
 
 String EZtime::zeropad(uint32_t number, uint8_t length) {
-	String out = String(number);
+	String out;
+	out.reserve(length);
+	out = String(number);
 	while (out.length() < length) out = "0" + out;
 	return out;
-}
-
-String EZtime::getBetween(String &haystack, String before_needle, String after_needle /* = "" */) {
-	int16_t start = haystack.indexOf(before_needle);
-	if (start == -1) return "";
-	start += before_needle.length();
-	if (after_needle == "") return haystack.substring(start);
-	int16_t end =  haystack.indexOf(after_needle, start);
-	if (end == -1) return "";
-	return haystack.substring(start, end);
 }
 
 time_t EZtime::compileTime(String compile_date /* = __DATE__ */, String compile_time /* = __TIME__ */) {
@@ -580,133 +323,153 @@ time_t EZtime::compileTime(String compile_date /* = __DATE__ */, String compile_
 	return 0;
 }
 
+bool EZtime::secondChanged() {
+	time_t t = now(false);
+	if (_last_read_t != t) return true;
+	return false;
+}
+
+bool EZtime::minuteChanged() {
+	time_t t = now(false);
+	if (_last_read_t / 60 != t / 60) return true;
+	return false;
+}
+
 
 #ifdef EZTIME_NETWORK_ENABLE
 
-// This is a nice self-contained NTP routine if you need one: feel free to use it.
-// It gives you the seconds since 1970 (unix epoch) and the millis() on your system when 
-// that happened (by deducting fractional seconds and estimated network latency).
-bool EZtime::queryNTP(String server, time_t &t, unsigned long &measured_at) {
-	debug(INFO, "Querying " + server + " ... ");
-
-	if (!WiFi.isConnected()) { error(NO_NETWORK); return false; }
-
-	WiFiUDP udp;
-	udp.begin(_ntp_local_port);
-	
-	// Send NTP packet
-	byte buffer[NTP_PACKET_SIZE];
-	memset(buffer, 0, NTP_PACKET_SIZE);
-	buffer[0] = 0b11100011;		// LI, Version, Mode
-	buffer[1] = 0;   			// Stratum, or type of clock
-	buffer[2] = 6;				// Polling Interval
-	buffer[3] = 0xEC;			// Peer Clock Precision
-								// 8 bytes of zero for Root Delay & Root Dispersion
-	buffer[12]  = 'X';			// "kiss code", see RFC5905
-	buffer[13]  = 'E';			// (codes starting with 'X' are not interpreted)
-	buffer[14]  = 'Z';
-	buffer[15]  = 'T';
-	udp.beginPacket(_ntp_server.c_str(), 123); //NTP requests are to port 123
-  	udp.write(buffer, NTP_PACKET_SIZE);
-	udp.endPacket();
-
-	// Wait for packet or return false with timed out
-	unsigned long started = millis();
-	while (!udp.parsePacket()) {
-		delay (1);
-		if (millis() - started > NTP_TIMEOUT) { error(TIMEOUT); return false; }
-	}
-	
-	// Set the t and measured_at variables that were passed by reference
-	unsigned long done = millis();
-	debugln(INFO, "success (round trip " + String(done - started) + " ms)");
-	udp.read(buffer, NTP_PACKET_SIZE);
-	unsigned long secsSince1900 = buffer[40] << 24 | buffer[41] << 16 | buffer[42] << 8 | buffer[43];
-	t = secsSince1900 - 2208988800UL;					// Subtract 70 years to get seconds since 1970
-	unsigned long fraction = buffer[44] << 24 | buffer[45] << 16 | buffer[46] << 8 | buffer[47];
-	uint16_t ms = fraction / 4294967UL;					// Turn 32 bit fraction into ms by dividing by 2^32 / 1000 
-	measured_at = done - ((done - started) / 2) - ms;	// Assume symmetric network latency and return when we think the whole second was.
-	return true;
-}
-
-void EZtime::setInterval(uint16_t seconds /* = 0 */) { _update_interval = seconds; }
-
-void EZtime::setServer(String ntp_server /* = NTP_SERVER */) { _ntp_server = ntp_server; }
-
-void EZtime::updateNow() { _update_due = millis(); now(); }
-
-bool EZtime::waitForSync(uint16_t timeout /* = 0 */) {
-
-	unsigned long start = millis();
-
-	if (!WiFi.isConnected()) {
-		debug(INFO, "Waiting for WiFi ... ");
-		while (!WiFi.isConnected()) {
-			if ( timeout && (millis() - start) / 1000 > timeout ) { error(TIMEOUT); return false;};
-			delay(25);
+	void EZtime::updateIfNeeded() {
+		if (_update_interval && (millis() >= _update_due + (_update_backoff * 1000)) ) {
+			if (millis() - _update_due > NTP_STALE_AFTER * 1000) _time_status = timeNeedsSync;	// If unable to sync for an hour, timeStatus = timeNeedsSync
+			time_t t;
+			unsigned long measured_at;
+			if (queryNTP(_ntp_server, t, measured_at)) {
+				int32_t correction = ( (t - _last_sync_time) * 1000 ) - ( measured_at - _last_sync_millis );
+				_last_sync_time = t;
+				_last_sync_millis = measured_at;
+				_last_read_ms = ( millis() - measured_at) % 1000;
+				info(F("Received time: "));
+				info(UTC.dateTime(_last_sync_time, F("l, d-M-y H:i:s.v T")));
+				if (_time_status != timeNotSet) {
+					info(F(" (internal clock was "));
+					if (!correction) {
+						infoln(F("spot on)"));
+					} else {
+						info(String(abs(correction)));
+						if (correction > 0) {
+							infoln(F(" ms fast)"));
+						} else {
+							infoln(F(" ms slow)"));
+						}
+					}
+				} else {
+					infoln("");
+				}
+				_update_due = millis() + (uint32_t)_update_interval * 1000;
+				_update_backoff = 0;
+				_time_status = timeSet;
+			} else {
+				_update_backoff += NTP_RETRY;
+			}
 		}
-		debugln(INFO, "connected");
 	}
 
-	if (!_time_status != timeSet) {
-		debugln(INFO, "Waiting for time sync");
-		while (_time_status != timeSet) {
-			if ( timeout && (millis() - start) / 1000 > timeout ) { error(TIMEOUT); return false;};
-			delay(250);
-			now();
+	// This is a nice self-contained NTP routine if you need one: feel free to use it.
+	// It gives you the seconds since 1970 (unix epoch) and the millis() on your system when 
+	// that happened (by deducting fractional seconds and estimated network latency).
+	bool EZtime::queryNTP(String server, time_t &t, unsigned long &measured_at) {
+		info(F("Querying "));
+		info(server);
+		info(F(" ... "));
+
+		#ifndef EZTIME_ETHERNET
+			if (!WiFi.isConnected()) { error(NO_NETWORK); return false; }
+			WiFiUDP udp;
+		#else
+			EthernetUDP udp;
+		#endif
+	
+		udp.flush();
+		udp.begin(NTP_LOCAL_TIME_PORT);
+	
+		// Send NTP packet
+		byte buffer[NTP_PACKET_SIZE];
+		memset(buffer, 0, NTP_PACKET_SIZE);
+		buffer[0] = 0b11100011;		// LI, Version, Mode
+		buffer[1] = 0;   			// Stratum, or type of clock
+		buffer[2] = 9;				// Polling Interval (9 = 2^9 secs = ~9 mins, close to our 10 min default)
+		buffer[3] = 0xEC;			// Peer Clock Precision
+									// 8 bytes of zero for Root Delay & Root Dispersion
+		buffer[12]  = 'X';			// "kiss code", see RFC5905
+		buffer[13]  = 'E';			// (codes starting with 'X' are not interpreted)
+		buffer[14]  = 'Z';
+		buffer[15]  = 'T';
+		udp.beginPacket(_ntp_server.c_str(), 123); //NTP requests are to port 123
+		udp.write(buffer, NTP_PACKET_SIZE);
+		udp.endPacket();
+
+		// Wait for packet or return false with timed out
+		unsigned long started = millis();
+		uint16_t packetsize = 0;
+		while (!udp.parsePacket()) {
+			delay (1);
+			if (millis() - started > NTP_TIMEOUT) {
+				udp.stop();	
+				error(TIMEOUT); 
+				return false;
+			}
 		}
-		debugln(INFO, "Time is in sync");
-	}		
-	
-}
-
-#ifdef EZTIME_NVS_ENABLE
-void EZtime::clearCache() {
-	Preferences preferences;
-	preferences.begin("ezTime", false);			// read-write
-	preferences.clear();
-	preferences.end();
-}
-#endif // EZTIME_NVS_ENABLE
-
-bool EZtime::timezoneAPI(String location, String &olsen, String &posix) {
-
-	if (!WiFi.isConnected()) { error(NO_NETWORK); return false; }
-
-	String path;
-	if (location.indexOf("/") != -1) { 
-		path = "/api/timezone/?" + ezTime.urlEncode(location);
-	} else if (location != "") {
-		path = "/api/address/?" + ezTime.urlEncode(location);
-	} else {
-		path = "/api/ip";
-	}
-
-	WiFiClient client;
-	if (!client.connect("timezoneapi.io", 80)) { error(CONNECT_FAILED);	return false; }
-
-	client.println("GET " + path + " HTTP/1.1");
-	client.println("Host: timezoneapi.io");
-	client.println("Connection: close");
-	client.println();
-	client.setTimeout(3000);
-	String reply = client.readString();
-	debugln(DEBUG, "Sent request for http://timezoneapi.io" + path);
-	debugln(DEBUG, "Reply from server in full:\r\n\r\n" + reply + "\r\n\r\n");
-	
-	// The below should not be mistaken for Json parsing...
-	posix = getBetween(reply, "\"tz_string\":\"", "\"");
-	posix.replace("\\/", "/");
-	olsen = getBetween(reply, "\"id\":\"", "\"");
-	olsen.replace("\\/", "/");
-	if (olsen != "" && posix != "") {
+		udp.read(buffer, NTP_PACKET_SIZE);
+		uint32_t highWord, lowWord;
+		highWord = ( buffer[40] << 8 | buffer[41] ) & 0x0000FFFF;	// Must be done in two steps on AVR
+		lowWord = ( buffer[42] << 8 | buffer[43] ) & 0x0000FFFF;
+		uint32_t secsSince1900 = highWord << 16 | lowWord;
+		// Set the t and measured_at variables that were passed by reference
+		uint32_t done = millis();
+		info(F("success (round trip ")); info(done - started); infoln(F(" ms)"));
+		t = secsSince1900 - 2208988800UL;					// Subtract 70 years to get seconds since 1970
+		highWord = ( buffer[44] << 8 | buffer[45] ) & 0x0000FFFF;
+		lowWord = ( buffer[46] << 8 | buffer[47] ) & 0x0000FFFF;
+		uint32_t fraction = highWord << 16 | lowWord;		// Must be done via two words on AVR 
+		uint16_t ms = fraction / 4294967UL;					// Turn 32 bit fraction into ms by dividing by 2^32 / 1000 
+		measured_at = done - ((done - started) / 2) - ms;	// Assume symmetric network latency and return when we think the whole second was.
+		udp.stop();											// On AVR there's only very limited sockets, we want to free them when done.
 		return true;
-	} else {
-		error(DATA_NOT_FOUND); 
-		return false;
 	}
-}
 
+	void EZtime::setInterval(uint16_t seconds /* = 0 */) { _update_interval = seconds; }
+
+	void EZtime::setServer(String ntp_server /* = NTP_SERVER */) { _ntp_server = ntp_server; }
+
+	void EZtime::updateNow() { _update_due = millis(); now(); }
+
+	bool EZtime::waitForSync(uint16_t timeout /* = 0 */) {
+
+		unsigned long start = millis();
+
+		#ifndef EZTIME_ETHERNET
+			if (!WiFi.isConnected()) {
+				info(F("Waiting for WiFi ... "));
+				while (!WiFi.isConnected()) {
+					if ( timeout && (millis() - start) / 1000 > timeout ) { error(TIMEOUT); return false;};
+					delay(25);
+				}
+				infoln(F("connected"));
+			}
+		#endif
+
+		if (!_time_status != timeSet) {
+			infoln(F("Waiting for time sync"));
+			while (_time_status != timeSet) {
+				if ( timeout && (millis() - start) / 1000 > timeout ) { error(TIMEOUT); return false;};
+				delay(250);
+				now();
+			}
+			infoln(F("Time is in sync"));
+		}		
+	
+	}
+	
 #endif // EZTIME_NETWORK_ENABLE
 
 
@@ -723,113 +486,534 @@ EZtime ezTime;
 
 Timezone::Timezone(bool locked_to_UTC /* = false */) {
 	_locked_to_UTC = locked_to_UTC;
-	_tzdata.std_tzname = "UTC";
-	_tzdata.std_offset = 0;
+	_posix = "UTC";
+	#ifdef EZTIME_CACHE_EEPROM
+		_cache_month = 0;
+		_eeprom_address = -1;
+	#endif
+	#ifdef EZTIME_CACHE_NVS
+		_cache_month = 0;
+		_nvs_name = "";
+		_nvs_key = "";
+	#endif
 }
 
 bool Timezone::setPosix(String posix) {
 	if (_locked_to_UTC) { ezTime.error(LOCKED_TO_UTC); return false; }
-	_tzdata = ezTime.parsePosix(posix, UTC.year());
-	_olsen = "";			// Might be manually set, so delete _olsen as to not suggest a link
+	_posix = posix;
 }	
 
-String Timezone::getPosix() { return _posix;}
+time_t Timezone::tzTime(time_t t /* = TIME_NOW */,  ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */, tzTimeData_t *tztd /* = NULL */) {
+	if (t == TIME_NOW) {
+		t = ezTime.now(); 
+		local_or_utc = UTC_TIME;
+	} else if (t == LAST_READ) {
+		t = ezTime._last_read_t;
+		local_or_utc = UTC_TIME;
+	}
+	
+	int8_t offset_hr = 0;
+	uint8_t offset_min = 0;
+	int8_t dst_shift_hr = 1;
+	uint8_t dst_shift_min = 0;
+	
+	uint8_t start_month = 0, start_week = 0, start_dow = 0, start_time_hr = 2, start_time_min = 0;
+	uint8_t end_month = 0, end_week = 0, end_dow = 0, end_time_hr = 2, end_time_min = 0;
+	
+	enum posix_state_e {STD_NAME, OFFSET_HR, OFFSET_MIN, DST_NAME, DST_SHIFT_HR, DST_SHIFT_MIN, START_MONTH, START_WEEK, START_DOW, START_TIME_HR, START_TIME_MIN, END_MONTH, END_WEEK, END_DOW, END_TIME_HR, END_TIME_MIN};
+	posix_state_e state = STD_NAME; 
 
-#ifdef EZTIME_NETWORK_ENABLE
+	bool ignore_nums = false;
+	char c = 1; // Dummy value to get while(newchar) started
+	uint8_t strpos = 0;
+	char (*std_tzname)[8];
+	char (*dst_tzname)[8];
+	if (tztd) {
+		tztd->stdname_end = _posix.length() - 1;
+		tztd->dstname_begin = _posix.length();
+		tztd->dstname_end = _posix.length();
+	}
+	while (strpos < _posix.length()) {
+		c = (char)_posix[strpos];
 
-bool Timezone::setLocation(String location, bool force_lookup /* = false */) {
-	ezTime.debugln(INFO, "Timezone lookup for: " + location);
-	if (_locked_to_UTC) { ezTime.error(LOCKED_TO_UTC); return false; }
-#ifdef EZTIME_NVS_ENABLE
-	// Caching only on EZTIME_NVS_ENABLE
+		// Do not replace the code below with switch statement: evaluation of state that 
+		// changes while this runs. (Only works because this state can only go forward.)
 
-	Preferences preferences;
-
-	location.replace(":", "_");		// ":" is our record separator, cannot be in location
-
-	String cache, cache_location; 
-	String hit_olsen = "";
-	String hit_posix = "";
-	int16_t x, hit_year; 
-	uint8_t first_free_entry = 0;
-	uint8_t cache_number = 0;
-	preferences.begin("ezTime", true);		// read-only
-	for (uint8_t n = 1; n < 100; n++) {
-		char key[] = "lookupcache-xx";
-		key[12] = '0' + (n / 10);
-		key[13] = '0' + (n % 10);
-		cache = preferences.getString(key);
-		if (cache == "") {
-			if(!first_free_entry) first_free_entry = n;
-		} else {
-			x = cache.indexOf(":"); cache_location = cache.substring(0, x); cache = cache.substring(x + 1);
-			if (cache_location == location) {
-				cache_number = n;		
-				x = cache.indexOf(":"); hit_olsen = cache.substring(0, x); cache = cache.substring(x + 1);
-				x = cache.indexOf(":"); hit_year = cache.substring(0, x).toInt();
-				hit_posix = cache.substring(x + 1);
-				break;
+		if (c && state == STD_NAME) {
+			if (c == '<') ignore_nums = true;
+			if (c == '>') ignore_nums = false;
+			if (!ignore_nums && (isDigit(c) || c == '-'  || c == '+')) {
+				state = OFFSET_HR;
+				if (tztd) tztd->stdname_end = strpos - 1;
 			}
 		}
-	}
-	preferences.end();
-	if (!cache_number) {
-		if (first_free_entry) {
-			cache_number = first_free_entry;
-		} else {
-			// Instead of writing whole logic for expiring cache, just pick a random location.
-			// If there's only a few used entries, odds of it overwriting something that's still
-			// used are low-ish, and re-fetching is not that expensive.
-			ezTime.debugln(INFO, "Cache full, next write will be at random location.");
-			cache_number = ( esp_random() % 100 ) + 1;
+		if (c && state == OFFSET_HR) {
+			if (c == '+') {
+				// Ignore the plus
+			} else if (c == ':') {
+				state = OFFSET_MIN;
+				c = 0;
+			} else if (c != '-' && !isDigit(c)) {
+				state = DST_NAME;
+				if (tztd) tztd->dstname_begin = strpos;
+			} else {
+				if (!offset_hr) offset_hr = atoi(_posix.c_str() + strpos);
+			}
+		}			
+		if (c && state == OFFSET_MIN) {
+			if (!isDigit(c)) {
+				state = DST_NAME;
+				ignore_nums = false;
+			} else {
+				if (!offset_min) offset_min = atoi(_posix.c_str() + strpos);
+			}
+		}				
+		if (c && state == DST_NAME) {
+			if (c == '<') ignore_nums = true;
+			if (c == '>') ignore_nums = false;
+			if (c == ',') {
+				state = START_MONTH;
+				c = 0;
+				if (tztd) tztd->dstname_end = strpos - 1;
+			} else if (!ignore_nums && (c == '-' || isDigit(c))) {
+				state = DST_SHIFT_HR;
+				if (tztd) tztd->dstname_end = strpos - 1;
+			}
+		}		
+		if (c && state == DST_SHIFT_HR) {
+			if (c == ':') {
+				state = DST_SHIFT_MIN;
+				c = 0;
+			} else if (c == ',') {
+				state = START_MONTH;
+				c = 0;
+			} else if (dst_shift_hr == 1) dst_shift_hr = atoi(_posix.c_str() + strpos);
+		}			
+		if (c && state == DST_SHIFT_MIN) {
+			if (c == ',') {
+				state = START_MONTH;
+				c = 0;
+			} else if (!dst_shift_min) dst_shift_min = atoi(_posix.c_str() + strpos);
+		}			
+		if (c && state == START_MONTH) {
+			if (c == '.') {
+				state = START_WEEK;
+				c = 0;
+			} else if (c != 'M' && !start_month) start_month = atoi(_posix.c_str() + strpos);	
+		}			
+		if (c && state == START_WEEK) {
+			if (c == '.') {
+				state = START_DOW;
+				c = 0;
+			} else start_week = c - '0';
+		}		
+		if (c && state == START_DOW) {
+			if (c == '/') {
+				state = START_TIME_HR;
+				c = 0;
+			} else if (c == ',') {
+				state = END_MONTH;
+				c = 0;
+			} else start_dow = c - '0';				
 		}
+		if (c && state == START_TIME_HR) {
+			if (c == ':') {
+				state = START_TIME_MIN;
+				c = 0;
+			} else if (c == ',') {
+				state = END_MONTH;
+				c = 0;
+			} else if (start_time_hr == 2) start_time_hr = atoi(_posix.c_str() + strpos);
+		}		
+		if (c && state == START_TIME_MIN) {
+			if (c == ',') {
+				state = END_MONTH;
+				c = 0;
+			} else if (!start_time_min) start_time_min = atoi(_posix.c_str() + strpos);
+		}		
+		if (c && state == END_MONTH) {
+			if (c == '.') {
+				state = END_WEEK;
+				c = 0;
+			} else if (c != 'M') if (!end_month) end_month = atoi(_posix.c_str() + strpos);
+		}			
+		if (c && state == END_WEEK) {
+			if (c == '.') {
+				state = END_DOW;
+				c = 0;
+			} else end_week = c - '0';
+		}		
+		if (c && state == END_DOW) {
+			if (c == '/') {
+				state = END_TIME_HR;
+				c = 0;			
+			} else end_dow = c - '0';
+		}
+		if (c && state == END_TIME_HR) {
+			if (c == ':') {
+				state = END_TIME_MIN;
+				c = 0;
+			}  else if (end_time_hr == 2) end_time_hr = atoi(_posix.c_str() + strpos);
+		}		
+		if (c && state == END_TIME_MIN) {
+			if (!end_time_min) end_time_min = atoi(_posix.c_str() + strpos);
+		}
+		strpos++;
+	}	
+	
+	int16_t std_offset = (offset_hr < 0) ? offset_hr * 60 - offset_min : offset_hr * 60 + offset_min;
+	
+	if (_posix.substring(0,3) == "UTC" && std_offset) _posix.replace("UTC", "???");
+	
+	if (!start_month) {
+		if (tztd) {
+			tztd->is_dst = false;
+			tztd->offset = std_offset;
+		}
+		return t - std_offset * 60;
 	}
 
-	// Return cache hit
-	if ( !force_lookup && hit_posix != "" && ( hit_year == year())) {
-		ezTime.debugln(INFO, "Cache hit: " + hit_olsen + " (" + hit_posix + ") from " + String(hit_year));
-		_posix = hit_posix;
-		setPosix(hit_posix);
-		_olsen = hit_olsen;		// Has to happen after setPosix because that sets _olsen to "";
-		return true;
+	int16_t dst_offset = std_offset - dst_shift_hr * 60 - dst_shift_min;
+	// to find the year
+	tmElements_t tm;
+	ezTime.breakTime(t, tm);	
+	
+	// in local time
+	time_t dst_start = ezTime.makeUmpteenthTime(start_time_hr, start_time_min, 0, start_week, start_dow, start_month, tm.Year + 1970);
+	time_t dst_end = ezTime.makeUmpteenthTime(end_time_hr, end_time_min, 0, end_week, end_dow, end_month, tm.Year + 1970);
+	
+	if (local_or_utc == UTC_TIME) {
+		dst_start -= std_offset;
+		dst_end -= dst_offset;
 	}
-#endif // ESP32
-	ezTime.error();		// Resets last error to OK
-	ezTime.debug(INFO, "timezoneapi.io lookup ... ");
-	String olsen, posix;
-	if (ezTime.timezoneAPI(location, olsen, posix)) {
-		ezTime.debugln(INFO, "success");
-		ezTime.debugln(INFO, "    Olsen: " + olsen);
-		ezTime.debugln(INFO, "    Posix: " + posix);
-		_posix = posix;
-		setPosix(posix);
-		_olsen = olsen;		// Has to happen after setPosix because that sets _olsen to "";
-		
-#ifdef EZTIME_NVS_ENABLE
-		ezTime.debugln(INFO, "Storing to cache(" + String(cache_number) + "): " + location + ":" + olsen + ":" + String(year()) + ":" + posix);
-		char key[] = "lookupcache-xx";
-		key[12] = '0' + (cache_number / 10);
-		key[13] = '0' + (cache_number % 10);
-		preferences.begin("ezTime", false);			// read-write
-		preferences.putString(key, location + ":" + olsen + ":" + String(year()) + ":" + posix);
-		preferences.end();
-		return true;
-	} else {		
-		if (!force_lookup && hit_posix != "") {
-			ezTime.debugln(INFO, "Using cache hit: " + hit_olsen + " (" + hit_posix + ") from " + String(hit_year));
-			_posix = hit_posix;
-			setPosix(hit_posix);
-			_olsen = hit_olsen;		// Has to happen after setPosix because that sets _olsen to "";
-			return true;
-		}	
-#endif // EZTIME_NVS_ENABLE
+	bool dst;
+    if (dst_end > dst_start) {
+        dst = (t >= dst_start && t < dst_end);		// northern hemisphere
+    } else {
+        dst = !(t >= dst_end && t < dst_start);		// southern hemisphere
+    }
+
+	int16_t offset = dst ? dst_offset : std_offset;
+
+	if (tztd) {
+		tztd->is_dst = dst ? true : false;
+		tztd->offset = offset;
 	}
-	ezTime.error(ezTime.error());		// This throws the last error (as generated by timezoneAPI) again.
-	return false;
+
+	if (local_or_utc == LOCAL_TIME) return t + offset * 60LL;
+
+	return t - offset * 60LL;
 
 }
 
-String Timezone::getOlsen() { return _olsen; }
+String Timezone::getPosix() { return _posix; }
+
+
+
+#ifdef EZTIME_NETWORK_ENABLE
+
+	bool Timezone::setLocation(String location /* = "" */) {
+	
+		info(F("Timezone lookup for: "));
+		infoln(location);
+		if (_locked_to_UTC) { ezTime.error(LOCKED_TO_UTC); return false; }
+		
+		#ifndef EZTIME_ETHERNET
+			if (!WiFi.isConnected()) { ezTime.error(NO_NETWORK); return false; }
+		#endif
+
+		String path;
+		if (location.indexOf("/") != -1) { 
+			path = F("/api/timezone/?"); path += ezTime.urlEncode(location);
+		} else if (location != "") {
+			path = F("/api/address/?"); path += ezTime.urlEncode(location);
+		} else {
+			path = F("/api/ip");
+		}
+
+		#ifndef EZTIME_ETHERNET
+			WiFiClient client;
+		#else
+			EthernetClient client;
+		#endif	
+
+		if (!client.connect("timezoneapi.io", 80)) { ezTime.error(CONNECT_FAILED);	return false; }
+
+		client.print(F("GET "));
+		client.print(path);
+		client.println(F(" HTTP/1.1"));
+		client.println(F("Host: timezoneapi.io"));
+		client.println(F("Connection: close"));
+		client.println();
+		client.setTimeout(3000);
+		
+		debug(F("Sent request for http://timezoneapi.io")); debugln(path);
+		debugln(F("Reply from server:\r\n"));
+		
+		// This "JSON parser" (bwahaha!) fits in the small memory of the AVRs
+		String tzinfo = "";
+		String needle = "\"id\":\"";
+		uint8_t search_state = 0;
+		uint8_t char_found = 0;
+		uint32_t start = millis();
+		while ( search_state < 4  && millis() - start < TIMEZONEAPI_TIMEOUT) {
+			if (client.available()) {
+				char c = client.read();
+				debug(c);
+				if (c == needle.charAt(char_found)) {
+					char_found++;
+					if (char_found == needle.length()) {
+						search_state++;
+						c = 0;
+					}
+				} else {
+					char_found = 0;
+				}
+				if (search_state == 1 || search_state == 3) {
+					if (c == '"') {
+						search_state++;
+						if (search_state == 2) {
+							needle = "\"tz_string\":\"";
+							tzinfo += ' ';
+						}
+					} else if (c && c != '\\') {
+						tzinfo += c;
+					}
+				}
+			}
+		}
+		debugln(F("\r\n\r\n"));
+		if (search_state != 4 || tzinfo == "") { ezTime.error(DATA_NOT_FOUND); return false; }
+		
+		infoln(F("success."));
+		info(F("Found: ")); infoln(tzinfo);
+
+		#if defined(EZTIME_CACHE_EEPROM) || defined(EZTIME_CACHE_NVS)
+			writeCache(tzinfo);
+		#endif		
+
+		_posix = tzinfo.substring(tzinfo.indexOf(' ') + 1);
+		return true;
+	}
+
+	#ifdef EZTIME_CACHE_EEPROM
+		bool Timezone::setCache(const int16_t address) {
+			if (address + EEPROM_CACHE_LEN > EEPROM.length()) { ezTime.error(CACHE_TOO_SMALL); return false; }
+			_eeprom_address = address;
+			return setCache();
+		}
+	#endif
+	
+	#ifdef EZTIME_CACHE_NVS
+		bool Timezone::setCache(const String name, const String key) {
+			_nvs_name = name;
+			_nvs_key = key;
+			return setCache();
+		}
+	#endif
+	
+	#if defined(EZTIME_CACHE_EEPROM) || defined(EZTIME_CACHE_NVS)
+
+		bool Timezone::setCache() {
+			String olsen, posix;
+			uint8_t months_since_jan_2018;
+			if (readCache(olsen, posix, months_since_jan_2018)) {
+				_posix = posix;
+				_cache_month = months_since_jan_2018;
+				if ( (year() - 2018) * 12 + month(LAST_READ) - months_since_jan_2018 > MAX_CACHE_AGE_MONTHS) {
+					setLocation(olsen);
+				}
+				return true;
+			}
+			return false;
+		}
+		
+		void Timezone::clearCache(bool delete_section /* = false */) {
+		
+			#ifdef EZTIME_CACHE_EEPROM
+				if (_eeprom_address < 0) { ezTime.error(NO_CACHE_SET); return; }
+				for (int16_t n = _eeprom_address; n < _eeprom_address + EEPROM_CACHE_LEN; n++) EEPROM.write(n, 0);
+			#endif
+
+			#ifdef EZTIME_CACHE_NVS
+				if (_nvs_name = "" || _nvs_key = "") { ezTime.error(NO_CACHE_SET); return; }
+				Preferences prefs;
+				prefs.begin(_nvs_name, false);
+				if (delete_section) {
+					prefs.clear();
+				} else {
+					prefs.remove(_nvs_key);
+				}
+				prefs.end();
+			#endif
+		}
+
+		String Timezone::getOlsen() {
+			String olsen, posix;
+			uint8_t months_since_jan_2018;
+			if (readCache(olsen, posix, months_since_jan_2018)) return olsen;
+			return "";
+		}	
+
+		bool Timezone::writeCache(const String &str) {
+			uint8_t months_since_jan_2018 = 0;
+			if (year() >= 2018) months_since_jan_2018 = (year(LAST_READ) - 2018) * 12 + month(LAST_READ) - 1;
+
+			#ifdef EZTIME_CACHE_EEPROM
+				if (_eeprom_address < 0) return false;
+				info(F("Caching timezone data  "));
+				if (str.length() > MAX_CACHE_PAYLOAD) { ezTime.error(CACHE_TOO_SMALL); return false; }
+				
+				uint16_t last_byte = _eeprom_address + EEPROM_CACHE_LEN - 1;	
+				uint16_t addr = _eeprom_address;
+				
+				// First byte is cache age, in months since 2018
+				EEPROM.write(addr++, months_since_jan_2018);
+				
+				// Second byte is length of payload
+				EEPROM.write(addr++, str.length());
+				
+				// Followed by payload, compressed. Every 4 bytes to three by encoding only 6 bits, ASCII all-caps
+				str.toUpperCase();
+				uint8_t store = 0;
+				for (uint8_t n = 0; n < str.length(); n++) {
+					unsigned char c = str.charAt(n) - 32;
+					if ( c > 63) c = 0;
+					switch (n % 4) {
+						case 0:
+							store = c << 2;					//all of 1st
+							break;
+						case 1:
+							store |= c >> 4;				//high two of 2nd
+							EEPROM.write(addr++, store);	 
+							store = c << 4;					//low four of 2nd
+							break;
+						case 2:
+							store |= c >> 2;				//high four of 3rd
+							EEPROM.write(addr++, store);
+							store = c << 6;					//low two of third
+							break;
+						case 3:
+							store |= c;						//all of 4th
+							EEPROM.write(addr++, store);
+							store = 0;
+					}
+				}
+				if (store) EEPROM.write(addr++, store);
+				
+				// Fill rest of cache (except last byte) with zeroes
+				for (; addr < last_byte; addr++) EEPROM.write(addr, 0);
+
+				// Add all bytes in cache % 256 and add 42, that is the checksum written to last byte.
+				// The 42 is because then checksum of all zeroes then isn't zero.
+				uint8_t checksum = 0;
+				for (uint16_t n = _eeprom_address; n < last_byte; n++) checksum += EEPROM.read(n);
+				checksum += 42;
+				EEPROM.write(last_byte, checksum);
+				infoln();
+				return true;
+			#endif
+			
+			#ifdef EZTIME_CACHE_NVS
+				if (_nvs_name = "" || _nvs_key = "") return false;
+				infoln(F("Caching timezone data"));
+				Preferences prefs;
+				prefs.begin(_nvs_name, false);
+				prefs.putString(_nvs_key, String(months_since_jan_2018) + " " + str);
+				prefs.end();
+				return true;
+			#endif
+		}
+	
+
+		bool Timezone::readCache(String &olsen, String &posix, uint8_t &months_since_jan_2018) {
+
+			#ifdef EZTIME_CACHE_EEPROM
+				if (_eeprom_address < 0) { ezTime.error(NO_CACHE_SET); return false; }
+				
+				uint16_t last_byte = _eeprom_address + EEPROM_CACHE_LEN - 1;			
+				
+				for (uint16_t n = _eeprom_address; n <= last_byte; n++) {
+					debug(n);
+					debug(F(" "));
+					debugln(EEPROM.read(n), HEX);
+				}
+				
+				// return false if checksum incorrect
+				uint8_t checksum = 0;
+				for (uint16_t n = _eeprom_address; n < last_byte; n++) checksum += EEPROM.read(n);
+				checksum += 42;				
+				if (checksum != EEPROM.read(last_byte)) return false;
+				debugln(F("Checksum OK"));
+				
+				// Return false if length impossible
+				uint8_t len = EEPROM.read(_eeprom_address + 1);
+				debug("Length: "); debugln(len);
+				if (len > MAX_CACHE_PAYLOAD) return false;
+				
+				// OK, we're gonna decompress
+				olsen.reserve(len + 3);		// Everything goes in olsen first. Decompression might overshoot 3 
+				months_since_jan_2018 = EEPROM.read(_eeprom_address);
+				uint8_t outlen = 0;
+				uint8_t n = 0;
+				
+				for (uint8_t n = 0; n < EEPROM_CACHE_LEN - 3; n++) {
+					uint16_t addr = n + _eeprom_address + 2;
+					uint8_t c = EEPROM.read(addr);
+					uint8_t p = EEPROM.read(addr - 1);	// previous byte
+					switch (n % 3) {
+						case 0:
+							olsen += (char)( ((c & 0b11111100) >> 2) + 32 );
+							break;
+						case 1:
+							olsen += (char)( ((p & 0b00000011) << 4) + ((c & 0b11110000) >> 4) + 32 );
+							break;
+						case 2:
+							olsen += (char)( ((p & 0b00001111) << 2) + ((c & 0b11000000) >> 6) + 32 );
+							olsen += (char)( (c & 0b00111111) + 32 );
+					}
+					if (olsen.length() >= len) break;
+				}
+				
+				uint8_t first_space = olsen.indexOf(' ');
+				posix = olsen.substring(first_space + 1, len);
+				olsen = olsen.substring(0, first_space);
+				
+				// Restore case of olsen (best effort)
+				String olsen_lowercase = olsen;
+				olsen_lowercase.toLowerCase();
+				for (uint8_t n = 1; n < olsen.length(); n++) {
+					unsigned char p = olsen.charAt(n - 1);	// previous character
+					if (p != '_' && p != '/' && p != '-') {
+						olsen.setCharAt(n, olsen_lowercase[n]);
+					}
+				}
+
+				info(F("Retrieved from cache: ")); info(olsen); info (F(" : ")); infoln(posix);
+				
+				return true;
+			#endif						
+			
+			#ifdef EZTIME_CACHE_NVS
+				if (_nvs_name = "" || _nvs_key = "") { ezTime.error(NO_CACHE_SET); return; }
+				
+				Preferences prefs;
+				prefs.begin(_nvs_name, true);
+				String olsen = prefs.getString(_nvs_key);
+				prefs.end();
+				if (!olsen) return false;
+				
+				uint8_t first_space = olsen.indexOf(' ');
+				uint8_t second_space = olsen.indexOf(' ', first_space + 1);
+				months_since_jan_2018 = olsen.toInt();
+				posix = olsen.substring(second_space + 1);
+				olsen = substring(olsen, first_space + 1, second_space);				
+				return true;
+			#endif
+		}
+		
+	#endif	// defined(EZTIME_CACHE_EEPROM) || defined(EZTIME_CACHE_NVS)
+
 
 #endif // EZTIME_NETWORK_ENABLE
 
@@ -838,103 +1022,39 @@ void Timezone::setDefault() {
 	defaultTZ = this;
 }
 
-bool Timezone::isDST() {
-	time_t t = ezTime.now();
-    if (_tzdata.dst_start_in_utc == _tzdata.dst_end_in_utc) return false;			// No DST observed here
-    
-    if (_tzdata.dst_end_in_utc > _tzdata.dst_start_in_utc) {
-        return (t >= _tzdata.dst_start_in_utc && t < _tzdata.dst_end_in_utc);		// northern hemisphere
-    } else {
-        return !(t >= _tzdata.dst_end_in_utc && t < _tzdata.dst_start_in_utc);		// southern hemisphere
-    }
+bool Timezone::isDST(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	tzTimeData_t* tztd = (tzTimeData_t*) malloc(sizeof *tztd);
+	t = tzTime(t, local_or_utc, tztd);
+	bool tmp = tztd->is_dst;
+	free(tztd);
+	return tmp;
 }
 
-bool Timezone::isDST_UTC(time_t t /*= TIME_NOW */) {
-	if (t == TIME_NOW) t = ezTime.now();
-	
-	tzData_t tz;
-	if (year(t) != year()) {
-		tz = ezTime.parsePosix(_posix, year(t));
-	} else {
-		tz = _tzdata;
-	}
-
-    if (tz.dst_start_in_utc == tz.dst_end_in_utc) return false;			// No DST observed here
-    
-    if (tz.dst_end_in_utc > tz.dst_start_in_utc) {
-        return (t >= tz.dst_start_in_utc && t < tz.dst_end_in_utc);		// northern hemisphere
-    } else {
-        return !(t >= tz.dst_end_in_utc && t < tz.dst_start_in_utc);	// southern hemisphere
-    }
+String Timezone::getTimezoneName(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	tzTimeData_t* tztd = (tzTimeData_t*) malloc(sizeof *tztd);
+	t = tzTime(t, local_or_utc, tztd);
+	String tmp = tztd->is_dst ? _posix.substring(tztd->dstname_begin, tztd->dstname_end + 1) : _posix.substring(0, tztd->stdname_end + 1);
+	free(tztd);
+	return tmp;
 }
 
-bool Timezone::isDST_local(time_t t /*= TIME_NOW */) {
-	if (t == TIME_NOW) return isDST_UTC(TIME_NOW);						//Prevent loops where timezone's now() tries to find offset
-	
-	t = _readTime(t);
-	tzData_t tz;
-	if (year(t) != year()) {
-		tz = ezTime.parsePosix(_posix, year(t));
-	} else {
-		tz = _tzdata;
-	}
-
-    if (tz.dst_start_in_local == tz.dst_end_in_local) return false;			// No DST observed here
-    
-    if (tz.dst_end_in_utc > tz.dst_start_in_utc) {
-        return (t >= tz.dst_start_in_local && t < tz.dst_end_in_local);		// northern hemisphere
-    } else {
-        return !(t >= tz.dst_end_in_local && t < tz.dst_start_in_local);	// southern hemisphere
-    }
+int16_t Timezone::getOffset(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	tzTimeData_t* tztd = (tzTimeData_t*) malloc(sizeof *tztd);
+	t = tzTime(t, local_or_utc, tztd);
+	int16_t tmp = tztd->offset;
+	free(tztd);
+	return tmp;
 }
 
-
-String Timezone::getTimezoneName(time_t t /*= TIME_NOW */) {
-	if (isDST_local(t)) {
-		return _tzdata.dst_tzname;
-	} else {
-		return _tzdata.std_tzname;
-	}
+time_t Timezone::now() {
+	return tzTime();
 }
 
-int32_t Timezone::getOffset(time_t t /*= TIME_NOW */) {
-	
-	if (isDST_local(t)) {
-		return _tzdata.dst_offset;
-	} else {
-		return _tzdata.std_offset;
-	}
-}
-
-time_t Timezone::now(bool update_last_read /* = true */) {
-
-	time_t t;	
-	t = ezTime.now();
-    if (_tzdata.dst_start_in_utc == _tzdata.dst_end_in_utc) {
-    	t -= _tzdata.std_offset;
-    } else {
-    	if (_tzdata.dst_end_in_utc > _tzdata.dst_start_in_utc) {
-        	t -= (t >= _tzdata.dst_start_in_utc && t < _tzdata.dst_end_in_utc) ? _tzdata.dst_offset : _tzdata.std_offset;
-    	} else {
-        	t -= (t >= _tzdata.dst_end_in_utc && t < _tzdata.dst_start_in_utc) ? _tzdata.dst_offset : _tzdata.std_offset;
-        }
-    }
-	if (update_last_read) _last_read_t = t;	
-	return t;
-}
-
-time_t Timezone::_readTime(time_t t) {
-	switch (t) {
-		case TIME_NOW: return now();
-		case LAST_READ: return _last_read_t;
-		default: return (t);
-	}
-}	
-
-void Timezone::setTime(time_t t) {
-	t += getOffset(t);
-	ezTime._last_sync_time = t;
-	ezTime._last_sync_millis = millis();
+void Timezone::setTime(time_t t, uint16_t ms /* = 0 */) {
+	int16_t offset;
+	offset = getOffset(t);
+	ezTime._last_sync_time = t + offset * 60;
+	ezTime._last_sync_millis = millis() - ms;
 	ezTime._time_status = timeSet;
 }
 
@@ -961,8 +1081,10 @@ String Timezone::dateTime(String format /* = DEFAULT_TIMEFORMAT */) {
 }
 
 String Timezone::dateTime(time_t t, String format /* = DEFAULT_TIMEFORMAT */) {
-	t = _readTime(t);
-	
+
+	tzTimeData_t* tztd = (tzTimeData_t*) malloc(sizeof *tztd);
+	t = tzTime(t, LOCAL_TIME, tztd);
+
 	String tmpstr;
 	uint8_t tmpint8;
 	String out = "";
@@ -979,7 +1101,7 @@ String Timezone::dateTime(time_t t, String format /* = DEFAULT_TIMEFORMAT */) {
 	
 	for (int8_t n = 0; n < format.length(); n++) {
 	
-		char c = (char) format.substring(n, n + 1).c_str()[0];
+		char c = (char) format.c_str()[n];
 		
 		if (escape_char) {
 			out += String(c);
@@ -996,8 +1118,7 @@ String Timezone::dateTime(time_t t, String format /* = DEFAULT_TIMEFORMAT */) {
 					out += ezTime.zeropad(tm.Day, 2);
 					break;
 				case 'D':	// A textual representation of a day, three letters
-					tmpstr = ezTime.dayString(tm.Wday);
-					out += tmpstr.substring(0,3);
+					out += ezTime.dayString(tm.Wday).substring(0,3);
 					break;
 				case 'j':	// Day of the month without leading zeros
 					out += String(tm.Day);
@@ -1015,15 +1136,15 @@ String Timezone::dateTime(time_t t, String format /* = DEFAULT_TIMEFORMAT */) {
 						case 1:
 						case 21:
 						case 31:
-							out += "st"; break;
+							out += F("st"); break;
 						case 2:
 						case 22:
-							out += "nd"; break;
+							out += F("nd"); break;
 						case 3:
 						case 23:
-							out += "rd"; break;
+							out += F("rd"); break;
 						default:
-							out += "th"; break;
+							out += F("th"); break;
 					}
 					break;
 				case 'w':	// Numeric representation of the day of the week ( 0 = Sunday )
@@ -1036,8 +1157,7 @@ String Timezone::dateTime(time_t t, String format /* = DEFAULT_TIMEFORMAT */) {
 					out += ezTime.zeropad(tm.Month, 2);
 					break;
 				case 'M':	// A short textual representation of a month, three letters
-					tmpstr = ezTime.monthString(tm.Month);
-					out += tmpstr.substring(0,3);
+					out += ezTime.monthString(tm.Month).substring(0,3);
 					break;
 				case 'n':	// Numeric representation of a month, without leading zeros
 					out += String(tm.Month);
@@ -1052,10 +1172,10 @@ String Timezone::dateTime(time_t t, String format /* = DEFAULT_TIMEFORMAT */) {
 					out += ezTime.zeropad((tm.Year + 1970) % 100, 2);
 					break;
 				case 'a':	// am or pm
-					out += (tm.Hour < 12) ? "am" : "pm";
+					out += (tm.Hour < 12) ? F("am") : F("pm");
 					break;
 				case 'A':	// AM or PM
-					out += (tm.Hour < 12) ? "AM" : "PM";
+					out += (tm.Hour < 12) ? F("AM") : F("PM");
 					break;
 				case 'g':	// 12-hour format of an hour without leading zeros
 					out += String(hour12);
@@ -1076,104 +1196,133 @@ String Timezone::dateTime(time_t t, String format /* = DEFAULT_TIMEFORMAT */) {
 					out += ezTime.zeropad(tm.Second, 2);
 					break;
 				case 'T':	// abbreviation for timezone
-					out += getTimezoneName(LAST_READ);	
+					out += tztd->is_dst ? _posix.substring(tztd->dstname_begin, tztd->dstname_end + 1) : _posix.substring(0, tztd->stdname_end + 1);	
 					break;
 				case 'v':	// milliseconds as three digits
 					out += ezTime.zeropad(ezTime._last_read_ms, 3);				
 					break;
-				case 'e':	// Timezone identifier (Olsen or if not available current TZ abbreviation)
-					if (_olsen != "") {
-						out += _olsen;
-					} else {
-						out += getTimezoneName(LAST_READ);
-					}
-					break;
+ 				case 'e':	// Timezone identifier (Olsen)
+ 					out += getOlsen();
+ 					break;
 				case 'O':	// Difference to Greenwich time (GMT) in hours and minutes written together (+0200)
 				case 'P':	// Difference to Greenwich time (GMT) in hours and minutes written with colon (+02:00)
-					o = getOffset(LAST_READ);
-					out += (o >= 0) ? "+" : "-";
+					o = tztd->offset;
+					out += (o < 0) ? "+" : "-";		// reverseed from our offset
 					if (o < 0) o = 0 - o;
-					out += ezTime.zeropad(o / 3600, 2);
-					out += (c == 'P') ? ":" : "";
 					out += ezTime.zeropad(o / 60, 2);
+					out += (c == 'P') ? ":" : "";
+					out += ezTime.zeropad(o % 60, 2);
 					break;	
 				case 'Z':	//Timezone offset in seconds. West of UTC is negative, east of UTC is positive.
-					out+= String(0 - getOffset(LAST_READ));
+					out += String(0 - tztd->offset * 60);
 					break;
+				case 'z':
+					out += String(dayOfYear(t)); // The day of the year (starting from 0)
+					break;
+				case 'W':
+					out += ezTime.zeropad(weekISO(t), 2); // ISO-8601 week number of year, weeks starting on Monday
+					break;
+				case 'X':
+					out += String(yearISO(t)); // ISO-8601 year-week notation year, see https://en.wikipedia.org/wiki/ISO_week_date
+					break;
+				
 				default:
 					out += String(c);
-
-	
-				// z -> The day of the year (starting from 0)
-		
-				// W -> ISO-8601 week number of year, weeks starting on Monday
 
 			}
 		}
 	}
 	
+	free(tztd);
+	
 	return out;
 }
 
-uint8_t Timezone::hour(time_t t /* = TIME_NOW */) {
-	t = _readTime(t);
+uint8_t Timezone::hour(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	t = tzTime(t, local_or_utc);
 	return t / 3600 % 24;
 }
 
-uint8_t Timezone::minute(time_t t /*= TIME_NOW */) {
-	t = _readTime(t);
+uint8_t Timezone::minute(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	t = tzTime(t, local_or_utc);
 	return t / 60 % 60;
 }
 
-uint8_t Timezone::second(time_t t /* = TIME_NOW */) {
-	t = _readTime(t);
+uint8_t Timezone::second(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	t = tzTime(t, local_or_utc);
 	return t % 60;
 }
 
-uint16_t Timezone::ms(time_t t /* = TIME_NOW */) {
+uint16_t Timezone::ms(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
 	// Note that here passing anything but TIME_NOW or LAST_READ is pointless
-	t = _readTime(t);
-	return ezTime._last_read_ms;
+	if (t == TIME_NOW) { ezTime.now(); return ezTime._last_read_ms; }
+	if (t == LAST_READ) return ezTime._last_read_ms;
+	return 0;
 }
 
-uint8_t Timezone::day(time_t t /* = TIME_NOW */) {
+uint8_t Timezone::day(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	t = tzTime(t, local_or_utc);
 	tmElements_t tm;
 	ezTime.breakTime(t, tm);
 	return tm.Day;
 }
 
-uint8_t Timezone::weekday(time_t t /* = TIME_NOW */) {
-	t = _readTime(t);
+uint8_t Timezone::weekday(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	t = tzTime(t, local_or_utc);
 	tmElements_t tm;
 	ezTime.breakTime(t, tm);
 	return tm.Wday;
 }
 
-uint8_t Timezone::month(time_t t /* = TIME_NOW */) {
-	t = _readTime(t);
+uint8_t Timezone::month(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	t = tzTime(t, local_or_utc);
 	tmElements_t tm;
 	ezTime.breakTime(t, tm);
 	return tm.Month;
 }
 
-uint16_t Timezone::year(time_t t /* = TIME_NOW */) {
-	t = _readTime(t);
+uint16_t Timezone::year(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	t = tzTime(t, local_or_utc);
 	tmElements_t tm;
 	ezTime.breakTime(t, tm);
 	return tm.Year + 1970;
 }
 
-bool Timezone::secondChanged() {
-	time_t t = now(false);
-	if (_last_read_t != t) return true;
-	return false;
+uint16_t Timezone::dayOfYear(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	t = tzTime(t, local_or_utc);
+	time_t jan_1st = ezTime.makeTime(0, 0, 0, 1, 1, year(t));
+	return (t - jan_1st) / SECS_PER_DAY;
 }
 
-bool Timezone::minuteChanged() {
-	time_t t = now(false);
-	if (_last_read_t / 60 != t / 60) return true;
-	return false;
+// Now this is where this gets a little obscure. The ISO year can be different from the
+// actual (Gregorian) year. That is: you can be in january and still be in week 53 of past
+// year, _and_ you can be in december and be in week one of the next. The ISO 8601 
+// definition for week 01 is the week with the Gregorian year's first Thursday in it.  
+// See https://en.wikipedia.org/wiki/ISO_week_date
+//
+#define startISOyear(args...) ezTime.makeUmpteenthTime(0, 0, 0, 1, 5, 1, args) - 3UL * SECS_PER_DAY;
+uint8_t Timezone::weekISO(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	t = tzTime(t, local_or_utc);
+	int16_t yr = year(t);
+	time_t this_year = startISOyear(yr);
+	time_t prev_year = startISOyear(yr - 1);
+	time_t next_year = startISOyear(yr + 1);
+	if (t < this_year) this_year = prev_year;
+	if (t > next_year) this_year = next_year;
+	return (t - this_year) / ( SECS_PER_DAY * 7UL) + 1;
 }
+
+uint16_t Timezone::yearISO(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	t = tzTime(t, local_or_utc);
+	int16_t yr = year(LAST_READ);
+	time_t this_year = startISOyear(yr);
+	time_t prev_year = startISOyear(yr - 1);
+	time_t next_year = startISOyear(yr + 1);
+	if (t < this_year) return yr - 1;
+	if (t > next_year) return yr + 1;
+	return yr;
+}
+
 
 Timezone UTC;
 Timezone& defaultTZ = UTC;
@@ -1181,30 +1330,28 @@ Timezone& defaultTZ = UTC;
 
 #ifdef ARDUINO_TIMELIB_COMPATIBILITY
 
-time_t now() { return  (defaultTZ.now()); }
-uint8_t second(time_t t = TIME_NOW) { return (defaultTZ.second(t)); } 
-uint8_t minute(time_t t = TIME_NOW) { return (defaultTZ.minute(t)); }
-uint8_t hour(time_t t = TIME_NOW) { return (defaultTZ.hour(t)); }
-uint8_t day(time_t t = TIME_NOW) { return (defaultTZ.day(t)); } 
-uint8_t weekday(time_t t = TIME_NOW) { return (defaultTZ.weekday(t)); }
-uint8_t month(time_t t = TIME_NOW) { return (defaultTZ.month(t)); } 
-uint16_t year(time_t t = TIME_NOW) { return (defaultTZ.year(t)); } 
-uint8_t hourFormat12(time_t t = TIME_NOW) { return (defaultTZ.hour(t) % 12); }
-bool isAM(time_t t = TIME_NOW) { return (defaultTZ.hour(t) < 12) ? true : false; }
-bool isPM(time_t t = TIME_NOW) { return (defaultTZ.hour(t) >= 12) ? true : false; } 
+	// Can't be macros because then it would also expand the explicit class member calls
 
-String monthStr(const uint8_t month) { return ezTime.monthString(month); }
-String monthShortStr(const uint8_t month) { String tmp = ezTime.monthString(month); return tmp.substring(0,3); }
-String dayStr(const uint8_t day) { return ezTime.dayString(day); }
-String dayShortStr(const uint8_t day) { String tmp = ezTime.dayString(day); return tmp.substring(0,3); }
+	time_t now() { return  (defaultTZ.now()); }
+	uint8_t second(time_t t = TIME_NOW) { return (defaultTZ.second(t)); } 
+	uint8_t minute(time_t t = TIME_NOW) { return (defaultTZ.minute(t)); }
+	uint8_t hour(time_t t = TIME_NOW) { return (defaultTZ.hour(t)); }
+	uint8_t day(time_t t = TIME_NOW) { return (defaultTZ.day(t)); } 
+	uint8_t weekday(time_t t = TIME_NOW) { return (defaultTZ.weekday(t)); }
+	uint8_t month(time_t t = TIME_NOW) { return (defaultTZ.month(t)); } 
+	uint16_t year(time_t t = TIME_NOW) { return (defaultTZ.year(t)); } 
+	uint8_t hourFormat12(time_t t = TIME_NOW) { return (defaultTZ.hour(t) % 12); }
+	bool isAM(time_t t = TIME_NOW) { return (defaultTZ.hour(t) < 12) ? true : false; }
+	bool isPM(time_t t = TIME_NOW) { return (defaultTZ.hour(t) >= 12) ? true : false; } 
+	String monthStr(const uint8_t month) { return ezTime.monthString(month); }
+	String monthShortStr(const uint8_t month) { return ezTime.monthString(month).substring(0,3); }
+	String dayStr(const uint8_t day) { return ezTime.dayString(day); }
+	String dayShortStr(const uint8_t day) { return ezTime.dayString(day).substring(0,3); }
+	void setTime(time_t t) { defaultTZ.setTime(t); }
+	void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t month, const uint16_t yr) { defaultTZ.setTime(hr, min, sec, day, month, yr); }
+	void breakTime(time_t t, tmElements_t &tm) { ezTime.breakTime(t, tm); }
+	time_t makeTime(tmElements_t &tm) { return ezTime.makeTime(tm); }
+	time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, int16_t year) { return ezTime.makeTime(hour, minute, second, day, month, year); }
+	timeStatus_t timeStatus() { return ezTime.timeStatus(); }
 
-void setTime(time_t t) { defaultTZ.setTime(t); }
-void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t month, const uint16_t yr) { defaultTZ.setTime(hr, min, sec, day, month, yr); }
-void breakTime(time_t t, tmElements_t &tm) { ezTime.breakTime(t, tm); }
-
-time_t makeTime(tmElements_t &tm) { return ezTime.makeTime(tm); }
-time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, int16_t year) { return ezTime.makeTime(hour, minute, second, day, month, year); }
-
-timeStatus_t timeStatus() { ezTime.timeStatus(); }
-
-#endif //ARDUINO_TIMELIB_COMPATIBILITY
+#endif

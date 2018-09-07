@@ -26,7 +26,7 @@ void setup() {
 	Serial.println("And ezTime is not making those milliseconds up either.");
 	Serial.println();
 	Serial.println("      ... Stick around as we do an NTP request every minute.");
-	ezTime.debug(INFO);
+	ezTime.debugLevel(INFO);
 	
 }
 

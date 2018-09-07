@@ -1,42 +1,59 @@
 #ifndef _EZTIME_H_
+#ifdef __cplusplus
 #define _EZTIME_H_
 
+
+// Whether or not to be compatible with Paul Stoffregen's Arduino Time Library.
+// (which makes a lot of functions available in your root namespace, additionally to through the
+// objects created by ezTime.)
 #define ARDUINO_TIMELIB_COMPATIBILITY
 
 // Compiles in NTP updating and timezoneapi.io fetching 
 #define EZTIME_NETWORK_ENABLE
 
-// On espressif turn on NVS storage (with "Preferences")
-#if defined (ESP32)		// This syntax so we can add " || defined (SOMEOTHER"
-#define EZTIME_NVS_ENABLE
-#endif  
+// Arduino Ethernet shields
+// #define EZTIME_ETHERNET
+
+// Uncomment one of the below to only put only messages up to a certain level in the compiled code
+// (You still need to turn them on with ezTime.debugLevel(someLevel)  to see them)
+// #define EZTIME_MAX_DEBUGLEVEL_NONE
+// #define EZTIME_MAX_DEBUGLEVEL_ERROR
+// #define EZTIME_MAX_DEBUGLEVEL_INFO
+
+// Cache mechanism, either EEPROM or NVS, not both. (See README)
+#define EZTIME_CACHE_EEPROM
+// #define EZTIME_CACHE_NVS
 
 
 
 #if !defined(__time_t_defined) // avoid conflict with newlib or other posix libc
-typedef unsigned long time_t;
+	typedef unsigned long time_t;
 #endif
 
 #include <inttypes.h>
 #ifndef __AVR__
-#include <sys/types.h> // for __time_t_defined, but avr libc lacks sys/types.h
+	#include <sys/types.h> // for __time_t_defined, but avr libc lacks sys/types.h
 #endif
 
 #if !defined(__time_t_defined) // avoid conflict with newlib or other posix libc
 typedef unsigned long time_t;
 #endif
 
+
+extern "C++" {
 
 ////////// Error handing
 
 typedef enum {
 	NO_ERROR,
-	LAST_ERROR,			// Pseudo error: replaced by last error
+	LAST_ERROR,			// Pseudo-error: replaced by last error
 	NO_NETWORK, 
 	TIMEOUT,
 	CONNECT_FAILED,
 	DATA_NOT_FOUND,
-	LOCKED_TO_UTC
+	LOCKED_TO_UTC,
+	NO_CACHE_SET,
+	CACHE_TOO_SMALL
 } ezError_t;
 
 typedef enum {
@@ -45,6 +62,41 @@ typedef enum {
 	INFO,
 	DEBUG
 } ezDebugLevel_t;
+
+typedef enum {
+	LOCAL_TIME,
+	UTC_TIME
+} ezLocalOrUTC_t;
+
+#if defined(EZTIME_MAX_DEBUGLEVEL_NONE)
+	#define	err(args...) 		""
+	#define	errln(args...) 		""
+	#define	info(args...) 		""
+	#define	infoln(args...) 	""
+	#define	debug(args...) 		""
+	#define	debugln(args...) 	""
+#elif defined(EZTIME_MAX_DEBUGLEVEL_ERROR)
+	#define	err(args...) 		if (ezTime._debug_level >= ERROR) Serial.print(args)
+	#define	errln(args...) 		if (ezTime._debug_level >= ERROR) Serial.println(args)
+	#define	info(args...) 		""
+	#define	infoln(args...) 	""
+	#define	debug(args...) 		""
+	#define	debugln(args...) 	""
+#elif defined(EZTIME_MAX_DEBUGLELEL_INFO)
+	#define	err(args...) 		if (ezTime._debug_level >= ERROR) Serial.print(args)
+	#define	errln(args...) 		if (ezTime._debug_level >= ERROR) Serial.println(args)
+	#define	info(args...) 		if (ezTime._debug_level >= INFO) Serial.print(args)
+	#define	infoln(args...) 	if (ezTime._debug_level >= INFO) Serial.println(args)
+	#define	debug(args...) 		""
+	#define	debugln(args...) 	""
+#else		// nothing specified compiles everything in.
+	#define	err(args...) 		if (ezTime._debug_level >= ERROR) Serial.print(args)
+	#define	errln(args...) 		if (ezTime._debug_level >= ERROR) Serial.println(args)
+	#define	info(args...) 		if (ezTime._debug_level >= INFO) Serial.print(args)
+	#define	infoln(args...) 	if (ezTime._debug_level >= INFO) Serial.println(args)
+	#define	debug(args...) 		if (ezTime._debug_level >= DEBUG) Serial.print(args)
+	#define	debugln(args...) 	if (ezTime._debug_level >= DEBUG) Serial.println(args)
+#endif
 
 ////////////////////////
 
@@ -69,115 +121,120 @@ typedef enum {
 } timeStatus_t;
 
 typedef struct  { 
-	String std_tzname;
-	String dst_tzname;
-	int32_t std_offset;
-	int32_t dst_offset;
-	time_t dst_start_in_local;
-	time_t dst_end_in_local;
-	time_t dst_start_in_utc;
-	time_t dst_end_in_utc;
-} tzData_t;
+	uint8_t stdname_end;			//Positions in _posix String. stdname_begin fixed at 0
+	uint8_t dstname_begin;
+	uint8_t dstname_end;
+	bool is_dst;
+	int16_t offset;					// offset from UTC in minutes
+} tzTimeData_t;
 
 #define TIME_NOW			0xFFFFFFFF
 #define LAST_READ			0xFFFFFFFE
 
 #define NTP_PACKET_SIZE		48
-#define NTP_LOCAL_PORT		2342
+#define NTP_LOCAL_TIME_PORT		2342
 #define NTP_SERVER			"pool.ntp.org"
 #define NTP_TIMEOUT			1500			// milliseconds
 #define NTP_INTERVAL		600				// default update interval in seconds
-#define NTP_RETRY			3				// Retry after this many seconds on failed NTP
+#define NTP_RETRY			5				// Retry after this many seconds on failed NTP
 #define NTP_STALE_AFTER		3600			// If update due for this many seconds, set timeStatus to timeNeedsSync
 
+#define TIMEZONEAPI_TIMEOUT	2000			// milliseconds
+
+#define EEPROM_CACHE_LEN		50
+#define MAX_CACHE_PAYLOAD		((EEPROM_CACHE_LEN - 3) / 3) * 4 + ( (EEPROM_CACHE_LEN - 3) % 3)	// 2 bytes for len and date, then 4 to 3 (6-bit) compression on rest 
+#define MAX_CACHE_AGE_MONTHS	2
+
 // Various date-time formats
+#define ISO8601_YWD			"X-\\Ww-N"			// Note that ISO-8601 Year/Week/Day notation may be one year + or - one at beginning or end of year
 #define ATOM 				"Y-m-d\\TH:i:sP"
 #define COOKIE				"l, d-M-Y H:i:s T"
 #define ISO8601				"Y-m-d\\TH:i:sO"
 #define RFC822				"D, d M y H:i:s O"
-#define RFC850				"l, d-M-y H:i:s T"
-#define RFC1036				"D, d M y H:i:s O"
-#define RFC1123				"D, d M Y H:i:s O"
-#define RFC2822				"D, d M Y H:i:s O"
-#define RFC3339 			"Y-m-d\\TH:i:sP"
+#define RFC850				COOKIE
+#define RFC1036				RFC822
+#define RFC1123				RFC822
+#define RFC2822				RFC822
+#define RFC3339 			ATOM
 #define RFC3339_EXT			"Y-m-d\\TH:i:s.vP"
-#define RSS					"D, d M Y H:i:s O"
-#define W3C					"Y-m-d\\TH:i:sP"
-#define DEFAULT_TIMEFORMAT	RFC850
+#define RSS					RFC822
+#define W3C					ATOM
+#define DEFAULT_TIMEFORMAT	COOKIE
+
+
+//
+//				E Z t i m e   c l a s s
+//
 
 class EZtime {
 
-	friend class Timezone;
+	friend class Timezone;			// Allow methods from Timezone class to access private methods of this class
 
 	////////// Error handing
 	public:
-		ezError_t error();									// Returns ezError_t enumeration of last error, resets _last_error to OK 
-		String errorString(ezError_t err);					// Human-readable form of last error.
-		void debug(ezDebugLevel_t level);					// Sets serial printing of debug info to specified ezDebugLevel_t enumeration
+		static ezError_t error();								// Returns ezError_t enumeration of last error, resets _last_error to OK 
+		static String errorString(ezError_t err = LAST_ERROR);	// Human-readable form of last error.
+		static void debugLevel(ezDebugLevel_t level);			// Sets serial printing of debug info to specified ezDebugLevel_t enumeration
 	private:
-		void error(ezError_t err);							// Used to set an error
-		void debug(ezDebugLevel_t level, String str); 		// Used to print debug info
-		void debugln(ezDebugLevel_t level, String str); 	// same, just adds \r\n
-		String debugLevelString(ezDebugLevel_t level); 		// Human-readable form of debug level.
-		ezError_t _last_error;
-		ezDebugLevel_t _debug_level;	
+		static void error(ezError_t err);						// Used to set an error
+		static String debugLevelString(ezDebugLevel_t level);	// Human-readable form of debug level.
+		static ezError_t _last_error;
+		static ezDebugLevel_t _debug_level;	
 	///////////
 	
 	public:
 		EZtime();
-		timeStatus_t timeStatus();
-		time_t now();
-		void breakTime(time_t time, tmElements_t &tm);  // break time_t into elements
-		time_t makeTime(tmElements_t &tm);  // convert time elements into time_t
-		time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, int16_t year);
-		time_t makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, int16_t year);
-		time_t compileTime(String compile_date = __DATE__, String compile_time = __TIME__);
-		String monthString(uint8_t month);
-		String dayString(uint8_t day);
+		static timeStatus_t timeStatus();
+		static time_t now(bool update_last_read = true);
+		static void breakTime(time_t time, tmElements_t &tm);  // break time_t into elements
+		static time_t makeTime(tmElements_t &tm);  // convert time elements into time_t
+		static time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, uint16_t year);
+		static time_t makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, uint16_t year);
+		static time_t compileTime(String compile_date = __DATE__, String compile_time = __TIME__);
+		static String monthString(uint8_t month);
+		static String dayString(uint8_t day);
+		static bool secondChanged();
+		static bool minuteChanged();
 		
 	private:
-		tzData_t parsePosix(String posix, int16_t year);
-		int32_t millisElapsed(unsigned long m);
-		time_t _last_sync_time;
-		int32_t _fudge;
-		unsigned long _last_sync_millis;
-		bool _debug_enabled, _ntp_enabled;
-		uint16_t _last_read_ms;
-		timeStatus_t _time_status;
+		static time_t _last_sync_time, _last_read_t;
+		static uint32_t _last_sync_millis;
+		static bool _ntp_enabled;
+		static uint16_t _last_read_ms;
+		static timeStatus_t _time_status;
 
-#ifdef EZTIME_NETWORK_ENABLE
+	#ifdef EZTIME_NETWORK_ENABLE
 
-	public:
-		bool queryNTP(String server, time_t &t, unsigned long &measured_at);	// measured_at: millis() at measurement, t is converted to secs since 1970
-		void updateNow();
-		void setServer(String ntp_server = NTP_SERVER);
-		void setInterval(uint16_t seconds = 0); 				// 0 = no NTP updates
-		bool waitForSync(uint16_t timeout = 0);					// timeout in seconds
-#ifdef ESP32
-		void clearCache();
-#endif // ESP32
+		public:
+			static bool queryNTP(String server, time_t &t, unsigned long &measured_at);	// measured_at: millis() at measurement, t is converted to secs since 1970
+			static void updateNow();
+			static void setServer(String ntp_server = NTP_SERVER);
+			static void setInterval(uint16_t seconds = 0); 				// 0 = no NTP updates
+			static bool waitForSync(uint16_t timeout = 0);				// timeout in seconds
 
-	private:
-		uint16_t _update_interval;		// in seconds
-		time_t _update_due;
-		uint16_t _update_backoff;		// seconds to add to _update_due to retry NTP
-		uint16_t _ntp_local_port, _ntp_interval, _ntp_max_drift;
-		String _ntp_server;
+		private:
+			static void updateIfNeeded();
+			static uint16_t _update_interval;		// in seconds
+			static uint32_t _update_due;
+			static uint16_t _update_backoff;		// seconds to add to _update_due to retry NTP
+			static String _ntp_server;
 
-#endif // EZTIME_NETWORK_ENABLE
+	#endif // EZTIME_NETWORK_ENABLE
 	
 	////////// Free extras ...
 	public:
-		String urlEncode(String str); 															// Does what you think it does
-		String zeropad(uint32_t number, uint8_t length);										// Returns number as string of given length, zero-padded on left if needed
-		String getBetween(String &haystack, String before_needle, String after_needle = "");	// Returns what's between before_needle and after_needle in haystack, or "" if not found. Returns until end of string if after_needle is empty
-		bool timezoneAPI(String location, String &olsen, String &posix);
+		static String urlEncode(String str); 														// Does what you think it does
+		static String zeropad(uint32_t number, uint8_t length);										// Returns number as string of given length, zero-padded on left if needed
 	//////////
 		
 };
 
-extern EZtime ezTime;
+extern EZtime ezTime;			// declares the "ezTime" instance of the "EZtime" class
 
+
+//
+//				T i m e z o n e   c l a s s
+//
 
 class Timezone {
 
@@ -185,108 +242,123 @@ class Timezone {
 		Timezone(bool locked_to_UTC = false);
 		bool setPosix(String posix);
 		String getPosix();
+		time_t tzTime(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME,  tzTimeData_t *tztd = NULL);
 		void setDefault();
-		bool isDST_local(time_t t = TIME_NOW);
-		bool isDST_UTC(time_t t = TIME_NOW);
-		bool isDST();
-		String getTimezoneName(time_t t = TIME_NOW);
-		int32_t getOffset(time_t t = TIME_NOW);
-		time_t now(bool update_last_read = true);
-		void setTime(time_t t);
+		bool isDST(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+		String getTimezoneName(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+		int16_t getOffset(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+		time_t now();
+		void setTime(time_t t, uint16_t ms = 0);
 		void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr);
-		String dateTime(String format = DEFAULT_TIMEFORMAT);				// http://php.net/manual/en/function.date.php for conversion
+		String dateTime(String format = DEFAULT_TIMEFORMAT);
 		String dateTime(time_t t, String format = DEFAULT_TIMEFORMAT);
-		uint8_t hour(time_t t = TIME_NOW);			// 0-23
-		uint8_t minute(time_t t = TIME_NOW);		// 0-59
-		uint8_t second(time_t t = TIME_NOW);		// 0-59
-		uint16_t ms(time_t t = TIME_NOW);			// 0-999
-		uint8_t day(time_t t = TIME_NOW);			// 1-31
-		uint8_t weekday(time_t t = TIME_NOW);		// Day of the week (1-7), Sunday is day 1
-		uint8_t month(time_t t = TIME_NOW);			// 1-12
-		uint16_t year(time_t t = TIME_NOW);			// four digit year		
-		bool secondChanged();	// Since last call to something that caused a time read, to avoid excessive calling of, eg, timeString
-		bool minuteChanged();
-		
+		uint8_t hour(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);			// 0-23
+		uint8_t minute(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// 0-59
+		uint8_t second(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// 0-59
+		uint16_t ms(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);			// 0-999
+		uint8_t day(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);			// 1-31
+		uint8_t weekday(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// Day of the week (1-7), Sunday is day 1
+		uint8_t month(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// 1-12
+		uint16_t year(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// four digit year
+		uint16_t dayOfYear(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);	// days from start of year, jan 1st = 0
+		uint8_t weekISO(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// ISO-8601 week number (weeks starting on Monday)
+		uint16_t yearISO(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// ISO-8601 year, can differ from actual year, plus or minus one
 	private:
-		time_t _readTime(time_t t);
+		String _posix;
 		bool _locked_to_UTC;
-		tzData_t _tzdata;
-		String _posix, _olsen;
-		time_t _last_read_t;
+ 		
+	#ifdef EZTIME_NETWORK_ENABLE
+	
+		public:
+			bool setLocation(String location = "");
 
-#ifdef EZTIME_NETWORK_ENABLE
-
-	public:
-		bool setLocation(String location, bool force_lookup = false);
-		String getOlsen();
-
-#endif // EZTIME_NETWORK_ENABLE	
+		#ifdef EZTIME_CACHE_EEPROM
+			public:
+				bool setCache(const int16_t address);
+			private:
+				int16_t _eeprom_address;
+		#endif
+		#ifdef EZTIME_CACHE_NVS
+			public:
+				bool setCache(const String name, const String key);
+			private:
+				String _nvs_name, _nvs_key;
+		#endif
+ 		#if defined(EZTIME_CACHE_EEPROM) || defined(EZTIME_CACHE_NVS)
+ 			public:
+ 				bool setCache();
+				void clearCache(bool delete_section = false);
+ 				String getOlsen();
+ 			private:
+  				bool writeCache(const String &str);
+ 				bool readCache(String &olsen, String &posix, uint8_t &months_since_jan_2018);
+ 				uint8_t _cache_month;
+		#endif
+		
+	#endif	
 
 };
 
 extern Timezone UTC;
-
 extern Timezone& defaultTZ;
 
 	
 
 #ifdef ARDUINO_TIMELIB_COMPATIBILITY
 
-/*==============================================================================*/
-/* Useful Constants */
-#define SECS_PER_MIN  (60UL)
-#define SECS_PER_HOUR (3600UL)
-#define DAYS_PER_WEEK (7UL)
-#define SECS_PER_WEEK (SECS_PER_DAY * DAYS_PER_WEEK)
-#define SECS_PER_YEAR (SECS_PER_WEEK * 52UL)
-#define SECS_YR_2000  (946684800UL) // the time at the start of y2k
+	/* Useful Constants */
+	#define SECS_PER_MIN  (60UL)
+	#define SECS_PER_HOUR (3600UL)
+	#define DAYS_PER_WEEK (7UL)
+	#define SECS_PER_WEEK (SECS_PER_DAY * DAYS_PER_WEEK)
+	#define SECS_PER_YEAR (SECS_PER_WEEK * 52UL)
+	#define SECS_YR_2000  (946684800UL) // the time at the start of y2k
  
-/* Useful Macros for getting elapsed time */
-#define numberOfSeconds(_time_) (_time_ % SECS_PER_MIN)  
-#define numberOfMinutes(_time_) ((_time_ / SECS_PER_MIN) % SECS_PER_MIN) 
-#define numberOfHours(_time_) (( _time_% SECS_PER_DAY) / SECS_PER_HOUR)
-#define dayOfWeek(_time_)  ((( _time_ / SECS_PER_DAY + 4)  % DAYS_PER_WEEK)+1) // 1 = Sunday
-#define elapsedDays(_time_) ( _time_ / SECS_PER_DAY)  // this is number of days since Jan 1 1970
-#define elapsedSecsToday(_time_)  (_time_ % SECS_PER_DAY)   // the number of seconds since last midnight 
-// The following macros are used in calculating alarms and assume the clock is set to a date later than Jan 1 1971
-// Always set the correct time before settting alarms
-#define previousMidnight(_time_) (( _time_ / SECS_PER_DAY) * SECS_PER_DAY)  // time at the start of the given day
-#define nextMidnight(_time_) ( previousMidnight(_time_)  + SECS_PER_DAY )   // time at the end of the given day 
-#define elapsedSecsThisWeek(_time_)  (elapsedSecsToday(_time_) +  ((dayOfWeek(_time_)-1) * SECS_PER_DAY) )   // note that week starts on day 1
-#define previousSunday(_time_)  (_time_ - elapsedSecsThisWeek(_time_))      // time at the start of the week for the given time
-#define nextSunday(_time_) ( previousSunday(_time_)+SECS_PER_WEEK)          // time at the end of the week for the given time
+	/* Useful Macros for getting elapsed time */
+	#define numberOfSeconds(_time_) (_time_ % SECS_PER_MIN)  
+	#define numberOfMinutes(_time_) ((_time_ / SECS_PER_MIN) % SECS_PER_MIN) 
+	#define numberOfHours(_time_) (( _time_% SECS_PER_DAY) / SECS_PER_HOUR)
+	#define dayOfWeek(_time_)  ((( _time_ / SECS_PER_DAY + 4)  % DAYS_PER_WEEK)+1) // 1 = Sunday
+	#define elapsedDays(_time_) ( _time_ / SECS_PER_DAY)  // this is number of days since Jan 1 1970
+	#define elapsedSecsToday(_time_)  (_time_ % SECS_PER_DAY)   // the number of seconds since last midnight 
+	// The following macros are used in calculating alarms and assume the clock is set to a date later than Jan 1 1971
+	// Always set the correct time before settting alarms
+	#define previousMidnight(_time_) (( _time_ / SECS_PER_DAY) * SECS_PER_DAY)  // time at the start of the given day
+	#define nextMidnight(_time_) ( previousMidnight(_time_)  + SECS_PER_DAY )   // time at the end of the given day 
+	#define elapsedSecsThisWeek(_time_)  (elapsedSecsToday(_time_) +  ((dayOfWeek(_time_)-1) * SECS_PER_DAY) )   // note that week starts on day 1
+	#define previousSunday(_time_)  (_time_ - elapsedSecsThisWeek(_time_))      // time at the start of the week for the given time
+	#define nextSunday(_time_) ( previousSunday(_time_)+SECS_PER_WEEK)          // time at the end of the week for the given time
 
+	/* Useful Macros for converting elapsed time to a time_t */
+	#define minutesToTime_t ((M)) ( (M) * SECS_PER_MIN)  
+	#define hoursToTime_t   ((H)) ( (H) * SECS_PER_HOUR)  
+	#define daysToTime_t    ((D)) ( (D) * SECS_PER_DAY) // fixed on Jul 22 2011
+	#define weeksToTime_t   ((W)) ( (W) * SECS_PER_WEEK) 
 
-/* Useful Macros for converting elapsed time to a time_t */
-#define minutesToTime_t ((M)) ( (M) * SECS_PER_MIN)  
-#define hoursToTime_t   ((H)) ( (H) * SECS_PER_HOUR)  
-#define daysToTime_t    ((D)) ( (D) * SECS_PER_DAY) // fixed on Jul 22 2011
-#define weeksToTime_t   ((W)) ( (W) * SECS_PER_WEEK) 
-
-
-time_t now();
-uint8_t second(time_t t /* = TIME_NOW */);
-uint8_t minute(time_t t /* = TIME_NOW */);
-uint8_t hour(time_t t /* = TIME_NOW */);
-uint8_t day(time_t t /* = TIME_NOW */); 
-uint8_t weekday(time_t t /* = TIME_NOW */);
-uint8_t month(time_t t /* = TIME_NOW */); 
-uint16_t year(time_t t /* = TIME_NOW */); 
-uint8_t hourFormat12(time_t t /* = TIME_NOW */);
-bool isAM(time_t t /* = TIME_NOW */);
-bool isPM(time_t t /* = TIME_NOW */); 
-String monthStr(const uint8_t month);
-String monthShortStr(const uint8_t month);
-String dayStr(const uint8_t month);
-String dayShortStr(const uint8_t month);
-void setTime(time_t t);
-void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t month, const uint16_t yr);
-void breakTime(time_t t, tmElements_t &tm);
-time_t makeTime(tmElements_t &tm);
-time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, int16_t year);
-timeStatus_t timeStatus();
+	time_t now();
+	uint8_t second(time_t t /* = TIME_NOW */);
+	uint8_t minute(time_t t /* = TIME_NOW */);
+	uint8_t hour(time_t t /* = TIME_NOW */);
+	uint8_t day(time_t t /* = TIME_NOW */); 
+	uint8_t weekday(time_t t /* = TIME_NOW */);
+	uint8_t month(time_t t /* = TIME_NOW */); 
+	uint16_t year(time_t t /* = TIME_NOW */); 
+	uint8_t hourFormat12(time_t t /* = TIME_NOW */);
+	bool isAM(time_t t /* = TIME_NOW */);
+	bool isPM(time_t t /* = TIME_NOW */); 
+	String monthStr(const uint8_t month);
+	String monthShortStr(const uint8_t month);
+	String dayStr(const uint8_t month);
+	String dayShortStr(const uint8_t month);
+	void setTime(time_t t);
+	void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t month, const uint16_t yr);
+	void breakTime(time_t t, tmElements_t &tm);
+	time_t makeTime(tmElements_t &tm);
+	time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, int16_t year);
+	timeStatus_t timeStatus();
 
 #endif //ARDUINO_TIMELIB_COMPATIBILITY
 
-
+} // extern "C++"
+#endif // __cplusplus
 #endif //_EZTIME_H_
