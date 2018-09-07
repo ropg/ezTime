@@ -1081,6 +1081,10 @@ String Timezone::dateTime(String format /* = DEFAULT_TIMEFORMAT */) {
 }
 
 String Timezone::dateTime(time_t t, String format /* = DEFAULT_TIMEFORMAT */) {
+	return dateTime(t, LOCAL_TIME, format);
+}
+
+String Timezone::dateTime(time_t t, ezLocalOrUTC_t local_or_utc, String format /* = DEFAULT_TIMEFORMAT */) {
 
 	tzTimeData_t* tztd = (tzTimeData_t*) malloc(sizeof *tztd);
 	t = tzTime(t, LOCAL_TIME, tztd);

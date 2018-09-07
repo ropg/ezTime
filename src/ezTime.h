@@ -146,7 +146,6 @@ typedef struct  {
 #define MAX_CACHE_AGE_MONTHS	2
 
 // Various date-time formats
-#define ISO8601_YWD			"X-\\Ww-N"			// Note that ISO-8601 Year/Week/Day notation may be one year + or - one at beginning or end of year
 #define ATOM 				"Y-m-d\\TH:i:sP"
 #define COOKIE				"l, d-M-Y H:i:s T"
 #define ISO8601				"Y-m-d\\TH:i:sO"
@@ -159,6 +158,7 @@ typedef struct  {
 #define RFC3339_EXT			"Y-m-d\\TH:i:s.vP"
 #define RSS					RFC822
 #define W3C					ATOM
+#define ISO8601_YWD			"X-\\Ww-N"			// Note that ISO-8601 Year/Week/Day notation may be one year + or - one at beginning or end of year
 #define DEFAULT_TIMEFORMAT	COOKIE
 
 
@@ -252,6 +252,7 @@ class Timezone {
 		void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr);
 		String dateTime(String format = DEFAULT_TIMEFORMAT);
 		String dateTime(time_t t, String format = DEFAULT_TIMEFORMAT);
+		String dateTime(time_t t, ezLocalOrUTC_t local_or_utc, String format = DEFAULT_TIMEFORMAT);
 		uint8_t hour(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);			// 0-23
 		uint8_t minute(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// 0-59
 		uint8_t second(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// 0-59
