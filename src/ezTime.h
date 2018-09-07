@@ -12,7 +12,7 @@
 #define EZTIME_NETWORK_ENABLE
 
 // Arduino Ethernet shields
-// #define EZTIME_ETHERNET
+#define EZTIME_ETHERNET
 
 // Uncomment one of the below to only put only messages up to a certain level in the compiled code
 // (You still need to turn them on with ezTime.debugLevel(someLevel)  to see them)
@@ -189,7 +189,7 @@ class EZtime {
 		static void breakTime(time_t time, tmElements_t &tm);  // break time_t into elements
 		static time_t makeTime(tmElements_t &tm);  // convert time elements into time_t
 		static time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, uint16_t year);
-		static time_t makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, uint16_t year);
+		static time_t makeOrdinalTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t ordinal, uint8_t wday, uint8_t month, uint16_t year);
 		static time_t compileTime(String compile_date = __DATE__, String compile_time = __TIME__);
 		static String monthString(uint8_t month);
 		static String dayString(uint8_t day);
@@ -286,10 +286,10 @@ class Timezone {
 		#endif
  		#if defined(EZTIME_CACHE_EEPROM) || defined(EZTIME_CACHE_NVS)
  			public:
- 				bool setCache();
 				void clearCache(bool delete_section = false);
  				String getOlsen();
  			private:
+ 				bool setCache();
   				bool writeCache(const String &str);
  				bool readCache(String &olsen, String &posix, uint8_t &months_since_jan_2018);
  				uint8_t _cache_month;

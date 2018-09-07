@@ -245,14 +245,14 @@ time_t EZtime::makeTime(tmElements_t &tm){
 	return (time_t)seconds; 
 }
 
-// makeUmpteenthTime allows you to resolve "second thursday in September in 2018" into a number of seconds since 1970
+// makeOrdinalTime allows you to resolve "second thursday in September in 2018" into a number of seconds since 1970
 // (Very useful for the timezone calculations that ezTime does internally) 
-// If umpteenth is 0 or 5 it is taken to mean "the last $wday in $month"
-time_t EZtime::makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, uint16_t year) {
+// If ordinal is 0 or 5 it is taken to mean "the last $wday in $month"
+time_t EZtime::makeOrdinalTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t ordinal, uint8_t wday, uint8_t month, uint16_t year) {
 	if (year <= 68 ) year = 1970 + year;		// fix user intent
-	if (umpteenth == 5) umpteenth = 0;
+	if (ordinal == 5) ordinal = 0;
 	uint8_t m = month;   
-	uint8_t w = umpteenth;
+	uint8_t w = ordinal;
 	if (w == 0) {			// is this a "Last week" rule?
 		if (++m > 12) {		// yes, for "Last", go to the next month
 			m = 1;
@@ -264,7 +264,7 @@ time_t EZtime::makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, u
 	// add offset from the first of the month to weekday, and offset for the given week
 	t += ( (wday - UTC.weekday(t) + 7) % 7 + (w - 1) * 7 ) * SECS_PER_DAY;
 	// back up a week if this is a "Last" rule
-	if (umpteenth == 0) t -= 7 * SECS_PER_DAY;
+	if (ordinal == 0) t -= 7 * SECS_PER_DAY;
 	return t;
 }
 
@@ -679,8 +679,8 @@ time_t Timezone::tzTime(time_t t /* = TIME_NOW */,  ezLocalOrUTC_t local_or_utc 
 	ezTime.breakTime(t, tm);	
 	
 	// in local time
-	time_t dst_start = ezTime.makeUmpteenthTime(start_time_hr, start_time_min, 0, start_week, start_dow, start_month, tm.Year + 1970);
-	time_t dst_end = ezTime.makeUmpteenthTime(end_time_hr, end_time_min, 0, end_week, end_dow, end_month, tm.Year + 1970);
+	time_t dst_start = ezTime.makeOrdinalTime(start_time_hr, start_time_min, 0, start_week, start_dow, start_month, tm.Year + 1970);
+	time_t dst_end = ezTime.makeOrdinalTime(end_time_hr, end_time_min, 0, end_week, end_dow, end_month, tm.Year + 1970);
 	
 	if (local_or_utc == UTC_TIME) {
 		dst_start -= std_offset;
@@ -1300,7 +1300,7 @@ uint16_t Timezone::dayOfYear(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_u
 // definition for week 01 is the week with the Gregorian year's first Thursday in it.  
 // See https://en.wikipedia.org/wiki/ISO_week_date
 //
-#define startISOyear(args...) ezTime.makeUmpteenthTime(0, 0, 0, 1, 5, 1, args) - 3UL * SECS_PER_DAY;
+#define startISOyear(args...) ezTime.makeOrdinalTime(0, 0, 0, 1, 5, 1, args) - 3UL * SECS_PER_DAY;
 uint8_t Timezone::weekISO(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
 	t = tzTime(t, local_or_utc);
 	int16_t yr = year(t);
