@@ -68,6 +68,37 @@ typedef enum {
 	UTC_TIME
 } ezLocalOrUTC_t;
 
+// Defines that can make your code more readable. For example, if you are looking for the first
+// Thursday in a year, you could write:  ezTime.makeOrdinalTime(0, 0, 0, JANUARY, FIRST, THURSDAY, year)
+// (As is done within ezTime to calculate ISO weeks)
+
+#define SUNDAY			1
+#define MONDAY			2
+#define TUESDAY			3
+#define WEDNESDAY		4
+#define THURSDAY		5
+#define FRIDAY			6
+#define SATURDAY		7
+
+#define JANUARY			1
+#define FEBRUARI		2
+#define MARCH			3
+#define APRIL			4
+#define MAY				5
+#define JUNE			6
+#define JULY			7
+#define AUGUST			8
+#define SEPTEMBER		9
+#define OCTOBER			10
+#define NOVEMBER		11
+#define DECEMBER		12
+
+#define	FIRST			1
+#define	SECOND			2
+#define	THIRD			3
+#define FOURTH			4
+#define LAST			5
+
 #if defined(EZTIME_MAX_DEBUGLEVEL_NONE)
 	#define	err(args...) 		""
 	#define	errln(args...) 		""

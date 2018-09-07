@@ -1304,7 +1304,7 @@ uint16_t Timezone::dayOfYear(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_u
 // definition for week 01 is the week with the Gregorian year's first Thursday in it.  
 // See https://en.wikipedia.org/wiki/ISO_week_date
 //
-#define startISOyear(args...) ezTime.makeOrdinalTime(0, 0, 0, 1, 5, 1, args) - 3UL * SECS_PER_DAY;
+#define startISOyear(year...) ezTime.makeOrdinalTime(0, 0, 0, FIRST, THURSDAY, JANUARY, year) - 3UL * SECS_PER_DAY;
 uint8_t Timezone::weekISO(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
 	t = tzTime(t, local_or_utc);
 	int16_t yr = year(t);

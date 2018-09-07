@@ -2,9 +2,11 @@
 
 **ezTime - pronounced "Easy Time" - is a very easy to use Arduino time and date library that provides NTP network time lookups, extensive timezone support, formatted time and date strings, millisecond precision and more.**
 
-> &nbsp; * limitations may apply, see "[2036 and 2038](#2036-and-2038)" chapter
+<div style="float: right"><sup>* limitations may apply, see "2036 and 2038" chapter</sup></div>
 
 &nbsp;
+
+<div style="text-align:center"><img src ="images/moving-clock.gif" /></div>
 
 ## A brief history of ezTime
 
@@ -22,7 +24,7 @@ Overlooking the battlefield after implementing some part of this, it seemed like
 
 **self-contained**: It only depends on other libraries to get online, but then it doesn't need other libraries for NTP and timezone data lookups.
 
-**precise**: Unlike other libraries, ezTime does not throw away or mangle the fractional second information from the NTP server. An NTP request to pool.ntp.org only takes 40ms round-trip on home DSL these days, so adding sub-second precision to a time library makes sense. ezTime reads the fractional seconds and tries to account for network latency to give you precise time.
+<img style="float: right;" src="images/stopwatch.png"> **precise**: Unlike other libraries, ezTime does not throw away or mangle the fractional second information from the NTP server. An NTP request to pool.ntp.org only takes 40ms round-trip on home DSL these days, so adding sub-second precision to a time library makes sense. ezTime reads the fractional seconds and tries to account for network latency to give you precise time.
 
 **backwards compatible**: Anything written for the existing Arduino time library will still work. You can set which timezone the sketch should be in, or have it be in UTC which is the default. But you can also set and express time referring to multiple timezones, all very easy and intuitive.
 
@@ -197,12 +199,14 @@ For example, if you have set up a timezone called Berlin, `Berlin.isDST(15363142
  
 
 ## How it all works
-
+ 
 ### What happens when you include the library
 
 It all starts when you include the library with  `#include <ezTime.h>`. From that point forward there is an object instance called `ezTime` with methods to control the behaviour of ezTime, as well as a timezone object called `UTC`, and a reference to this object called `defaultTZ` (which you may point to a different timezone later).
 
 ### No daemons here
+
+<img style="float: right;" src="images/clock-sync.png">
 
 It is important to understand what ezTime does NOT do. It does not somehow create a background process that keeps time, contacts servers, or whatever. The Arduino does the timekeeping for us with its `millis()` counter, which keeps the time in milliseconds since the Arduino started. All ezTime does when it synchronizes time is to store a time (in seconds since 1970) and the position of the millis counter when that was. By seeing how much the millis counter has advanced and adding that starting point since 1970, ezTime tells time. But that internal clock isn't perfect, it may - very slowly - drift away from the actual time. So periodically when you ask it something, it will discover that it's time to re-synchronize its own clock with the NTP server, and then it'll go out, do that and take, say, 50 ms longer to respond back to your code. But it all happens only when you ask for it.
 
@@ -272,9 +276,13 @@ Note that this function is used internally by ezTime, but does not by itself set
 
 &nbsp;
 
-## Timezones, caching and timezoneapi.com
+## Timezones
 
-Timezones are objects. They can be created with `Timezone yourTZ`, where `yourTZ` is the name you choose to refer to the timezone. In this manual, this name will be used from now on. But you can naturally choose any name you want.
+> *If only it was as uncomplicated as this map suggests. Every band is actually made up of countries that all change to their Daylight Saving Time on different dates, and they even change the rules for when that happens frequently.*
+
+![](images/timezones.gif)
+
+Timezones in ezTime are objects. They can be created with `Timezone yourTZ`, where `yourTZ` is the name you choose to refer to the timezone. In this manual, this name will be used from now on. But you can naturally choose any name you want.
 
 Internally, ezTime stores everything it knows about a timezone as two strings. One is the official name of the timezone in "Olsen" format (like `Europe/Berlin`). That name is used to then update when needed all the other information needed to represent time in that timezone. This is in another string, in so-called "posix" format. It's often a little longer and for Berlin it is `CET-1CEST,M3.4.0/2,M10.4.0/3`. The elements of this string have the following meanings:
 
@@ -479,6 +487,8 @@ bool yourTZ.minuteChanged();
 
 
 ## Setting date and time manually
+
+![](images/setting-clock.jpg)
 
 `void yourTZ.setTime(time_t t, uint16_t ms = 0);`
 
