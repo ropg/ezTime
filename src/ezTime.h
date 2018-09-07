@@ -12,7 +12,7 @@
 #define EZTIME_NETWORK_ENABLE
 
 // Arduino Ethernet shields
-#define EZTIME_ETHERNET
+// #define EZTIME_ETHERNET
 
 // Uncomment one of the below to only put only messages up to a certain level in the compiled code
 // (You still need to turn them on with ezTime.debugLevel(someLevel)  to see them)
