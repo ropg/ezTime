@@ -212,9 +212,13 @@ Your code might call `Serial.println(UTC.dateTime());` to print a complete textu
 
 Worse is when you set up a timezone for which you would like to retrieve the daylight savings rules from the server: it can't do that if the connection isn't up yet. So that's why there's a function called `ezTime.waitForSync` that simply requests the time until it is synchronized (or until a set number of seconds passes, see below).
 
+&nbsp;
+
 ## Setting and synchronising time
 
 The NTP request from the scenario above failed because the network wasn't up yet, so the clock would still not be synchronized. Subsequent requests will retry the NTP query, but only if they happen at least 5 seconds later. 
+
+&nbsp;
 
 ### ezTime.timeStatus
 
@@ -228,11 +232,15 @@ Returns what state the clock is in. `ezTime.timeStatus()` will return one of:
 | `timeSet` | The clock should have the current time |
 | `timeNeedsSync` | A scheduled NTP request has been due for more than an hour. (The time an update needs to be due before `timeNeedsSync` is set is configured by the `NTP_STALE_AFTER` define in the `ezTime.h` file.) |
 
+&nbsp;
+
 ### ezTime.waitForSync
 
 `bool ezTime.waitForSync(uint16_t timeout = 0);`
 
 If your code uses timezones other than UTC, it might want to wait to initialise them until there is a valid time to see if the cached timezone definitions are still current. And if you are displaying a calendar or clock, it might look silly if it first says midnight on January 1st 1970 before showing the real time. `ezTime.waitForSync` will wait for the network to connect, and then for the time to be synchronized before returning `true`. If you specify a timeout (in seconds), it will return after that many seconds even if the clock is not in sync yet, returning `false`. (ezTime error `TIMEOUT`, see the chapter on error and debug messages further down)
+
+&nbsp;
 
 ### *ezTime.setServer and ezTime.setInterval*
 
@@ -242,11 +250,15 @@ If your code uses timezones other than UTC, it might want to wait to initialise 
 
 By default, ezTime is set to poll `pool.ntp.org` every 10 minutes. These defaults should work for most people, but you can change them by specifying a new server with `ezTime.setServer` or a new interval (in seconds) with ezTime.setInterval. If you call setInterval with an interval of 0 seconds or call it as `ezTime.setInterval()`, no more NTP queries will be made.
 
+&nbsp;
+
 ### *ezTime.updateNow*
 
 `void ezTime.updateNow();`
 
 Schedules the next update to happen immediately, and then tries to query the NTP server. If that fails, it will keep retrying when you ask for new time information, but not more often than once every 5 seconds. (Defined by `NTP_RETRY` in `ezTime.h`.)
+
+&nbsp;
 
 ### *ezTime.queryNTP*
 
@@ -258,19 +270,11 @@ If the time server answers, `ezTime.queryNTP` returns `true`. If `false` is retu
 
 Note that this function is used internally by ezTime, but does not by itself set the time ezTime keeps. You will likely never need to call this from your code.
 
+&nbsp;
+
 ## Timezones, caching and timezoneapi.com
 
-### On timezones in ezTime
-
 Timezones are objects. They can be created with `Timezone yourTZ`, where `yourTZ` is the name you choose to refer to the timezone. In this manual, this name will be used from now on. But you can naturally choose any name you want.
-
-### yourTZ.setDefault
-
-`void yourTZ.setDefault()`
-
-`#include <ezTime.h>` includes the library, creates `ezTime` object and `UTC` instance of `Timezone` class, as well as `defaultTZ`, which is a reference to UTC unless you set it to another timzone by calling `yourTZ.setDefault()`. The functions in the root namespace like `hour()` and `minute()` - without a timezone in front - are interpreted as if passed to the default timezone. So if you have ezisting code, just setting up a timezone and making it the default should cause that code to work as if the time was set in local time. 
-
-### On timezone data in ezTime
 
 Internally, ezTime stores everything it knows about a timezone as two strings. One is the official name of the timezone in "Olsen" format (like `Europe/Berlin`). That name is used to then update when needed all the other information needed to represent time in that timezone. This is in another string, in so-called "posix" format. It's often a little longer and for Berlin it is `CET-1CEST,M3.4.0/2,M10.4.0/3`. The elements of this string have the following meanings:
 
@@ -288,6 +292,16 @@ Internally, ezTime stores everything it knows about a timezone as two strings. O
 | `.0` | a Sunday |
 | `/3` | at 03:00 local time |
 
+&nbsp;
+
+### yourTZ.setDefault
+
+`void yourTZ.setDefault()`
+
+`#include <ezTime.h>` includes the library, creates `ezTime` object and `UTC` instance of `Timezone` class, as well as `defaultTZ`, which is a reference to UTC unless you set it to another timzone by calling `yourTZ.setDefault()`. The functions in the root namespace like `hour()` and `minute()` - without a timezone in front - are interpreted as if passed to the default timezone. So if you have ezisting code, just setting up a timezone and making it the default should cause that code to work as if the time was set in local time. 
+
+&nbsp;
+
 ### yourTZ.setPosix
 
 `bool yourTZ.setPosix(String posix)`
@@ -302,11 +316,15 @@ Serial.println(India.dateTime());
 
 is enough, because the time in India doesn't go back and forth with the coming and going of Daylight Saving Time (even though the half hour offset to UTC is pretty weird.)
 
+&nbsp;
+
 ### yourTZ.getPosix
 
 `String yourTZ.getPosix()`
 
 `getPosix` does what you would expect and simply returns the posix string stored in ezTime for a given timezone. 
+
+&nbsp;
 
 ### yourTZ.isDST
 
@@ -314,11 +332,15 @@ is enough, because the time in India doesn't go back and forth with the coming a
 
 Tells you whether DST is in effect at a given time in this timezone. If you do not provide arguments, it's interpreted as 'right now'. You can also specify a time (in seconds since 1970, we'll get back to that) in the first argument. If you want to know for a time in UTC, you can set the second argument to `false`, otherwise you are assumed to mean in local time.
 
+&nbsp;
+
 ### yourTZ.getTimezoneName
 
 `String getTimezoneName(TIME);`
 
 Provides the short code for the timezone, like `IST` for India, or `CET` (during standard time) or `CEST` (during Daylight Saving Time) for most of Europe. 
+
+&nbsp;
 
 ### yourTZ.getOffset
 
@@ -326,21 +348,29 @@ Provides the short code for the timezone, like `IST` for India, or `CET` (during
 
 Provide the offset from UTC in minutes at the indicated time (or now if you do not specify anything). The offset here is in the same direction as the posix information, so -120 means 2 hours east of UTC.
 
+&nbsp;
+
 ### yourTZ.setLocation and timezoneapi.com
 
 `bool yourTZ.setLocation(String location = "")`
 
 With `setLocation` you can provide a string to do an internet lookup for a timezone. If the string contains a forward slash, the string is taken to be on Olsen timezone name, like `Europe/Berlin`. If it does not, it is parsed as a free form address, for which the system will try to find a timezone. You can enter "Paris" and get the info for "Europe/Paris", or enter "Paris, Texas" and get the timezone info for "America/Chicago", which is the Central Time timezone that Texas is in. After the information is retrieved, it is loaded in the current timezone, and cached if a cache is set (see below). `setLocation` will return `false` (Setting either `NO_NETWORK`, `CONNECT_FAILED` or `DATA_NOT_FOUND`) if it cannot find the information online. 
 
+&nbsp;
+
 ### Timezone caching, EEPROM or NVS
 
 You can create a place for ezTime to store the data about the timezone. That way, it doens't need to get the information anew every time the Arduino boots. There are two ways to do caching. You can supply an EEPROM location. A single timezone needs 50 bytes to cache. The data is written in compressed form so that the Olsen and Posix strings fit in 3/4 of the space they would normally take up, and alomg with it is stored a checksum, a length field and a single byte for the month in which the cache was retrieved, in months after January 2018.
+
+&nbsp;
 
 ### setCache
 
 `bool yourTZ.setCache(const int16_t address)`
 
 `bool yourTZ.setCache(const String name, const String key)`
+
+&nbsp;
 
 ### clearCache
 
@@ -349,48 +379,79 @@ You can create a place for ezTime to store the data about the timezone. That way
 
 ## Getting date and time
 
+&nbsp;
+
 ### yourTZ.dateTime
 
 ```
-String yourTZ.dateTime(String format = DEFAULT_TIMEFORMAT);
-String yourTZ.dateTime(time_t t, String format = DEFAULT_TIMEFORMAT);
+String yourTZ.dateTime(TIME, String format = DEFAULT_TIMEFORMAT);
 ```
 
-We'll start with one of the most powerful functions of ezTime. With datetime you can represent a date and/or a time in any way you want. You do this in the same way you do in many programming languages: by providing a special formatting string. Many characters in this string have special meanings and will be replaced. What this means is that `utc.dateTime("l, d-M-y H:i:s.v T")` might return `Saturday, 25-Aug-18 14:32:53.282 UTC`. Here's the list of characters and what they are replaced by.
+We'll start with one of the most powerful functions of ezTime. With `dateTime` you can represent a date and/or a time in any way you want. You do this in the same way you do in many programming languages: by providing a special formatting string. Many characters in this string have special meanings and will be replaced. What this means is that `utc.dateTime("l, d-M-y H:i:s.v T")` might return `Saturday, 25-Aug-18 14:32:53.282 UTC`. Below is the list of characters and what they are replaced by. Any characters not on this list are simply not replaced and stay as is. See the last two entries for a way to use characters on this list in your string.
 
-| char | replaced by |
-| ----- | :----- |
-| `d` | Day of the month, 2 digits with leading zeros |
-| `D` | First three letters of day in English, like `Tue` |
-| `j` | Day of the month without leading zeros |
-| `l` | (lowercase L) Day of the week in English, like `Tuesday` |
+| char | replaced by 
+| ----- | :----- 
+| `d` | Day of the month, 2 digits with leading zeros 
+| `D` | First three letters of day in English, like `Tue` 
+| `j` | Day of the month without leading zeros 
+| `l` | (lowercase L) Day of the week in English, like `Tuesday` 
 | `N` | // ISO-8601 numeric representation of the day of the week. (1 = Monday, 7 = Sunday)
-| `S` | English ordinal suffix for the day of the month, 2 characters (st, nd, rd, th) |
-| `w` | Numeric representation of the day of the week (0 = Sunday) |
-| `F` | A month's name, such as `January` |
-| `m` | Numeric representation of a month, with leading zeros |
-| `M` | Three first letters of a monthin English, like `Apr` |
-| `n` | Numeric representation of a month, without leading zeros |
-| `t` | Number of days in the given month |
-| `Y` | A full numeric representation of the year, 4 digits |
-| `y` | Last two digits of the year |
-| `a` | am or pm |
-| `A` | AM or PM |
-| `g` | 12-hour format of an hour without leading zeros |
-| `G` | 24-hour format of an hour without leading zeros |
-| `h` | 12-hour format of an hour with leading zeros |
-| `H` | 24-hour format of an hour with leading zeros |
-| `i` | Minutes with leading zeros |
-| `s` | Seconds with leading zero |
-| `T` | abbreviation for timezone, like `CEST` |
-| `v` | milliseconds as three digits |
-| `e` | Timezone identifier (Olsen name), like `Europe/Berlin` |
-| `O` | Difference to Greenwich time (GMT) in hours and minutes written together, like `+0200`. Here a positive offset means east of UTC. |
-| `P` | Same as O but with a colon between hours and minutes, like `+02:00` |
-| `Z` | Timezone offset in seconds. West of UTC is negative, east of UTC is positive. |
-| `z` | The day of the year (starting from 0) |
+| `S` | English ordinal suffix for the day of the month, 2 characters (st, nd, rd, th) 
+| `w` | Numeric representation of the day of the week (0 = Sunday) 
+| `F` | A month's name, such as `January` 
+| `m` | Numeric representation of a month, with leading zeros 
+| `M` | Three first letters of a monthin English, like `Apr` 
+| `n` | Numeric representation of a month, without leading zeros 
+| `t` | Number of days in the given month 
+| `Y` | A full numeric representation of the year, 4 digits 
+| `y` | Last two digits of the year 
+| `a` | am or pm 
+| `A` | AM or PM 
+| `g` | 12-hour format of an hour without leading zeros 
+| `G` | 24-hour format of an hour without leading zeros 
+| `h` | 12-hour format of an hour with leading zeros 
+| `H` | 24-hour format of an hour with leading zeros 
+| `i` | Minutes with leading zeros 
+| `s` | Seconds with leading zero 
+| `T` | abbreviation for timezone, like `CEST` 
+| `v` | milliseconds as three digits 
+| `e` | Timezone identifier (Olsen name), like `Europe/Berlin` 
+| `O` | Difference to Greenwich time (GMT) in hours and minutes written together, like `+0200`. Here a positive offset means east of UTC. 
+| `P` | Same as O but with a colon between hours and minutes, like `+02:00` 
+| `Z` | Timezone offset in seconds. West of UTC is negative, east of UTC is positive. 
+| `z` | The day of the year (starting from 0) 
 | `W` | ISO-8601 week number. See right below for explanation link.
-| `X` | ISO-8601 year for year-week notation as four digit year. Warning: Not guaranteed to be same as current year, may be off by one at start or end of year. See [here](https://en.wikipedia.org/wiki/ISO_week_date) |
+| `X` | ISO-8601 year for year-week notation as four digit year. Warning: Not guaranteed to be same as current year, may be off by one at start or end of year. See [here](https://en.wikipedia.org/wiki/ISO_week_date) 
+| `\` | Not printed, but escapes the following character, meaning it will not be replaced. But inserting a backslash in the string means you have to supply two backslashes `\\` to be interpreted as one. 
+| `~` | (tilde) Same as backslash above, except easier to insert in the string. Example: `~t~h~e` will print the word `the` in the string. Letters should be escaped even if they are not on the list because they may be repolaced in future versions. 
+
+So as an example: `UTC.dateTime("l ~t~h~e jS ~o~f F Y, g:i A")` yields date and time in this format: `Saturday the 25th of August 2018, 2:23 PM`.
+
+#&nbsp;
+
+### Built-in date and time formats
+
+There are built-in values to specify some standard date and time formats. For example: `UTC.dateTIme(RSS)` (without quotes around RSS) returns something like `Sat, 25 Aug 2018 14:23:45 +0000`. Here's a list of all these built in format abbreviations.
+
+| name        | formatted date and time
+|:------|:------|
+| ATOM        | 2018-08-25T14:23:45+00:00	
+| COOKIE      | Saturday, 25-Aug-2018 14:23:45 UTC
+| IS8601      | 2018-08-25T14:23:45+0000
+| RFC822      | Sat, 25 Aug 18 14:23:45 +0000
+| RFC850      | Saturday, 25-Aug-18 14:23:45 UTC
+| RFC1036     | Sat, 25 Aug 18 14:23:45 +0000	
+| RFC1123     | Sat, 25 Aug 2018 14:23:45 +0000	
+| RFC2822     | Sat, 25 Aug 2018 14:23:45 +0000	
+| RFC3339     | 2018-08-25T14:23:45+00:00
+| RFC3339_EXT | 2018-08-25T14:23:45.846+00:00
+| RSS         | Sat, 25 Aug 2018 14:23:45 +0000
+| W3C         | 2018-08-25T14:23:45+00:00	
+| ISO8601_YWD | 2018-W34-5
+
+&nbsp;
+
+### now
 
 `time_t yourTZ.now(bool update_last_read = true)`
 
@@ -425,7 +486,7 @@ bool yourTZ.minuteChanged();
 
 ## Various functions
 
-`time_t ezTime.makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, int16_t year);`
+`time_t ezTime.makeOrdinalTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t ordinal, uint8_t wday, uint8_t month, int16_t year);`
 
 `time_t ezTime.compileTime(String compile_date = __DATE__, String compile_time = __TIME__);`
 
@@ -434,6 +495,8 @@ bool yourTZ.minuteChanged();
 `String urlEncode(String str);`
 
 `String zeropad(uint32_t number, uint8_t length);`
+
+&nbsp;
 
 ### *yourTZ.tzTime*
 
@@ -454,6 +517,8 @@ TODO: explain better and also explain tztd
 
 ## Errors and debug information
 
+&nbsp;
+
 ### ezTime.debugLevel
 
 `void ezTime.debugLevel(ezDebugLevel_t level);`
@@ -469,6 +534,8 @@ Sets the level of detail at which ezTime outputs messages on the serial port. Ca
 
 *Note:* you can specify which level of debug information whould be compiled into the library. This is especially significant for AVR Arduino users that need to limit the flashindia and RAM footprint of ezTtime. See the "Running on small Arduinos" chapter further down. TODO
 
+&nbsp;
+
 ### ezTime.error
 
 `ezError_t ezTime.error();`
@@ -476,6 +543,8 @@ Sets the level of detail at which ezTime outputs messages on the serial port. Ca
 A number of functions in ezTime are booleans, meaning they return `true` or `false` as their return value, where `false` means some error ocurred. `ezTime.error` will return an `ezError_t` enumeration, something like `NO_NETWORK` (obvious) or `LOCKED_TO_UTC` (when you try to load some new timezone info to the UTC object). You can test for these specific errors and this document will mention which errors night happen in what functions.
 
 When you call `error()`, it will also reset the error, so you can clear the last error stored.
+
+&nbsp;
 
 ### ezTime.errorString
 
