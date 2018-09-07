@@ -2,7 +2,7 @@
 
 **ezTime - pronounced "Easy Time" - is a very easy to use Arduino time and date library that provides NTP network time lookups, extensive timezone support, formatted time and date strings, millisecond precision and more.**
 
-> &nbsp; * limitations may apply, see "2036 and 2038" chapter
+> &nbsp; * limitations may apply, see "[2036 and 2038](#2036-and-2038)" chapter
 
 &nbsp;
 
@@ -32,7 +32,7 @@ Overlooking the battlefield after implementing some part of this, it seemed like
 
 **time-saving**: No more time spent on writing code to print date or time in some nicer way. Print things like "8:20 PM" or "Saturday the 23rd of August 2018" with ease. Prevent display-flicker with minuteChanged() and secondChanged() functions without storing any values to compare.
 
-**Small enough**: Works with all features and full debugging information on an Arduino Uno with an Ethernet Shield, leaving 2/3 of RAM but not too much flash for you to work with. (Even on a good day there isn't that much left if you want to do anything that involves networking.) Various `#define` options let you leave parts of it out if you want to make it smaller: you can even leave out the networking altogether if you have a different time source.
+**small enough**: Works with all features and full debugging information on an Arduino Uno with an Ethernet Shield, leaving 2/3 of RAM but not too much flash for you to work with. (Even on a good day there isn't that much left if you want to do anything that involves networking.) Various `#define` options let you leave parts of it out if you want to make it smaller: you can even leave out the networking altogether if you have a different time source.
 
 **easy to use**: Don't believe it until you see it. Have a look at some of these examples to see how easy it is to use.
 
@@ -72,15 +72,15 @@ New Zealand time: Friday, 07-Sep-2018 23:25:11 NZST
 ### Formatted date and time
 
 ```
-	Serial.println("COOKIE:      " + UTC.dateTime(COOKIE));
-	Serial.println("IS8601:      " + UTC.dateTime(ISO8601));
-	Serial.println("RFC822:      " + UTC.dateTime(RFC822));
-	Serial.println("RFC850:      " + UTC.dateTime(RFC850));
-	Serial.println("RFC3339:     " + UTC.dateTime(RFC3339));
-	Serial.println("RFC3339_EXT: " + UTC.dateTime(RFC3339_EXT));
-	Serial.println("RSS:         " + UTC.dateTime(RSS));
-	Serial.println();
-	Serial.println("or like " + UTC.dateTime("l ~t~h~e jS ~o~f F Y, g:i A") );
+Serial.println("COOKIE:      " + UTC.dateTime(COOKIE));
+Serial.println("IS8601:      " + UTC.dateTime(ISO8601));
+Serial.println("RFC822:      " + UTC.dateTime(RFC822));
+Serial.println("RFC850:      " + UTC.dateTime(RFC850));
+Serial.println("RFC3339:     " + UTC.dateTime(RFC3339));
+Serial.println("RFC3339_EXT: " + UTC.dateTime(RFC3339_EXT));
+Serial.println("RSS:         " + UTC.dateTime(RSS));
+Serial.println();
+Serial.println("or like " + UTC.dateTime("l ~t~h~e jS ~o~f F Y, g:i A") );
 ```
 
 ```
@@ -100,9 +100,9 @@ or like Saturday the 25th of August 2018, 2:23 PM
 ### milliseconds
 
 ```
-	for (int n = 0; n < 10; n++) {
-		Serial.println(UTC.dateTime("l, d-M-y H:i:s.v T"));
-	}
+for (int n = 0; n < 10; n++) {
+	Serial.println(UTC.dateTime("l, d-M-y H:i:s.v T"));
+}
 ```
 
 ```
@@ -262,7 +262,7 @@ Note that this function is used internally by ezTime, but does not by itself set
 
 ### On timezones in ezTime
 
-TODO, also explain that we refer to timezones as `yourTZ` in rest of this document
+Timezones are objects. They can be created with `Timezone yourTZ`, where `yourTZ` is the name you choose to refer to the timezone. In this manual, this name will be used from now on. But you can naturally choose any name you want.
 
 ### yourTZ.setDefault
 
@@ -272,7 +272,7 @@ TODO, also explain that we refer to timezones as `yourTZ` in rest of this docume
 
 ### On timezone data in ezTime
 
-Internally, ezTime stores everything it knows about a timezone as two strings. One is the official name of the timezone in "Olsen" format (like `Europe/Berlin`). That name is used to then update, at least once per year, all the other information needed to represent time in that timezone. This is another string, in so-called "posix" format. It's a little longer and for Berlin it is `CET-1CEST,M3.4.0/2,M10.4.0/3`. The elements of this string are as follows:
+Internally, ezTime stores everything it knows about a timezone as two strings. One is the official name of the timezone in "Olsen" format (like `Europe/Berlin`). That name is used to then update when needed all the other information needed to represent time in that timezone. This is in another string, in so-called "posix" format. It's often a little longer and for Berlin it is `CET-1CEST,M3.4.0/2,M10.4.0/3`. The elements of this string have the following meanings:
 
 | Element | meaning |
 | ---- | ---- |
@@ -310,29 +310,42 @@ is enough, because the time in India doesn't go back and forth with the coming a
 
 ### yourTZ.isDST
 
-`bool yourTZ.isDST(time_t t = TIME_NOW, bool local_time = true);`
+`bool yourTZ.isDST(TIME);`
 
 Tells you whether DST is in effect at a given time in this timezone. If you do not provide arguments, it's interpreted as 'right now'. You can also specify a time (in seconds since 1970, we'll get back to that) in the first argument. If you want to know for a time in UTC, you can set the second argument to `false`, otherwise you are assumed to mean in local time.
 
 ### yourTZ.getTimezoneName
 
-`String getTimezoneName(time_t t = TIME_NOW, bool local_time = true);`
+`String getTimezoneName(TIME);`
 
 Provides the short code for the timezone, like `IST` for India, or `CET` (during standard time) or `CEST` (during Daylight Saving Time) for most of Europe. 
 
 ### yourTZ.getOffset
 
-`int16_t yourTZ.getOffset(time_t t = TIME_NOW, bool local_time = true)`
+`int16_t yourTZ.getOffset(TIME)`
 
-Provide the offset from UTC in minutes at the indicated time (or now if you do not specify anything). The offset here is in the same direction as the posix information, that means -120 would mean 2 hours east of UTC.
+Provide the offset from UTC in minutes at the indicated time (or now if you do not specify anything). The offset here is in the same direction as the posix information, so -120 means 2 hours east of UTC.
 
-### *yourTZ.tzTime*
+### yourTZ.setLocation and timezoneapi.com
 
-`time_t yourTZ.tzTime(time_t t = TIME_NOW,  bool local_time = true,  tzTimeData_t *tztd = NULL);`
+`bool yourTZ.setLocation(String location = "")`
 
-This will tell you the time in seconds since 00:00 on Jan 1st 1970 in a timezone when you give it a timne in UTC, or vice versa. 
+With `setLocation` you can provide a string to do an internet lookup for a timezone. If the string contains a forward slash, the string is taken to be on Olsen timezone name, like `Europe/Berlin`. If it does not, it is parsed as a free form address, for which the system will try to find a timezone. You can enter "Paris" and get the info for "Europe/Paris", or enter "Paris, Texas" and get the timezone info for "America/Chicago", which is the Central Time timezone that Texas is in. After the information is retrieved, it is loaded in the current timezone, and cached if a cache is set (see below). `setLocation` will return `false` (Setting either `NO_NETWORK`, `CONNECT_FAILED` or `DATA_NOT_FOUND`) if it cannot find the information online. 
 
-TODO: explain better and also explain tztd
+### Timezone caching, EEPROM or NVS
+
+You can create a place for ezTime to store the data about the timezone. That way, it doens't need to get the information anew every time the Arduino boots. There are two ways to do caching. You can supply an EEPROM location. A single timezone needs 50 bytes to cache. The data is written in compressed form so that the Olsen and Posix strings fit in 3/4 of the space they would normally take up, and alomg with it is stored a checksum, a length field and a single byte for the month in which the cache was retrieved, in months after January 2018.
+
+### setCache
+
+`bool yourTZ.setCache(const int16_t address)`
+
+`bool yourTZ.setCache(const String name, const String key)`
+
+### clearCache
+
+`void ezTime.clearCache(bool delete_section = false);`
+
 
 ## Getting date and time
 
@@ -381,35 +394,55 @@ We'll start with one of the most powerful functions of ezTime. With datetime you
 
 `time_t yourTZ.now(bool update_last_read = true)`
 
-`void yourTZ.setTime(time_t t, uint16_t ms = 0);`
-
-`void yourTZ.setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr)`
 
 ```
-String yourTZ.dateTime(String format = DEFAULT_TIMEFORMAT);
-String yourTZ.dateTime(time_t t, String format = DEFAULT_TIMEFORMAT);
-```
-
-```
-uint8_t yourTZ.hour(time_t t = TIME_NOW);
-uint8_t yourTZ.minute(time_t t = TIME_NOW);
-uint8_t yourTZ.second(time_t t = TIME_NOW);
-uint16_t yourTZ.ms(time_t t = TIME_NOW);
-uint8_t yourTZ.day(time_t t = TIME_NOW);
-uint8_t yourTZ.weekday(time_t t = TIME_NOW);
-uint8_t yourTZ.month(time_t t = TIME_NOW);
-uint16_t yourTZ.year(time_t t = TIME_NOW);
+uint8_t yourTZ.hour(TIME);
+uint8_t yourTZ.minute(TIME);
+uint8_t yourTZ.second(TIME);
+uint16_t yourTZ.ms(TIME);
+uint8_t yourTZ.day(TIME);
+uint8_t yourTZ.weekday(TIME);
+uint8_t yourTZ.month(TIME);
+uint16_t yourTZ.year(TIME);
 ```
 
 ```
-uint8_t weekISO(time_t t = TIME_NOW);
-uint16_t yearISO(time_t t = TIME_NOW);
+uint8_t weekISO(TIME);
+uint16_t yearISO(TIME);
 ```
 
 ```
 bool yourTZ.secondChanged();
 bool yourTZ.minuteChanged();
 ```
+
+
+## Setting date and time manually
+
+`void yourTZ.setTime(time_t t, uint16_t ms = 0);`
+
+`void yourTZ.setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr)`
+
+## Various functions
+
+`time_t ezTime.makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, int16_t year);`
+
+`time_t ezTime.compileTime(String compile_date = __DATE__, String compile_time = __TIME__);`
+
+`String ezTime.getBetween(String &haystack, String before_needle, String after_needle = "");`
+
+`String urlEncode(String str);`
+
+`String zeropad(uint32_t number, uint8_t length);`
+
+### *yourTZ.tzTime*
+
+`time_t yourTZ.tzTime(TIME,  tzTimeData_t *tztd = NULL);`
+
+This will tell you the time in seconds since 00:00 on Jan 1st 1970 in a timezone when you give it a timne in UTC, or vice versa. 
+
+TODO: explain better and also explain tztd
+
 
 ## Compatibility with Arduino `Time` library
 
@@ -450,20 +483,8 @@ When you call `error()`, it will also reset the error, so you can clear the last
 
 This will give you a string representation of the error specified. The pseudo-error `LAST_ERROR`, which is the default, will give you the textual representation of the last error. This will not reset the last error stored.
 
-## Various functions
-
-`time_t ezTime.makeUmpteenthTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t umpteenth, uint8_t wday, uint8_t month, int16_t year);`
-
-`time_t ezTime.compileTime(String compile_date = __DATE__, String compile_time = __TIME__);`
-
-`String ezTime.getBetween(String &haystack, String before_needle, String after_needle = "");`
-
-`String urlEncode(String str);`
-
-`String zeropad(uint32_t number, uint8_t length);`
-
-`void ezTime.clearCache();`
-
 ## 2036 and 2038
 
 The NTP timestamps used here run until the 7th of February 2036. NTP itself has 128 bits of time precision, I haven't looked into it much. Didn't have to, because just a little later, on the 19th of January 2038, the time_t 32 bit signed integer overflows. This is 20 years from today, in 2018. The Arduino world, if it still exists around then, will have come together around some solution that probably involves 64-bit time like in many operating systems of 2018. If you use this library in your nuclear generating station (**NOOOOO!**), make sure you're not around when these timers wrap around.
+
+Should you be the one doing maintenance on this is some far-ish future: For ezTime I created another overflowing counter: the cache age for the timezone information is written as a single unsigned byte in months after January 2018, so that could theoretically cause problems in 2039, but I think everything will just roll over and use 2039 as the new anchor date.
