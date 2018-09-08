@@ -183,7 +183,7 @@ I hate documentation that still makes me reach for for the source code, so this 
 
 `time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL`
 
-Throughout this manual, we replace these two optional arguments in the funtion definitions with:
+Throughout this manual, we replace these two optional arguments in the function definitions with:
 
 `TIME` 
 
