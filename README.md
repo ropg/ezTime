@@ -14,9 +14,9 @@ So far, so good.
 
 Then I remembered how annoyed I always am when daylight savings time comes or goes, as I have to manually set some of my clocks such as the microwave oven, the clock in the car dashboard, etc etc. My clock would need to know about timezone rules. So I could get Jack Christensen's [Timezone library](https://github.com/JChristensen/Timezone). But it needs the timezone's rules, like "DST goes into effect on the last Sunday in March at 02:00 local time" told to it. I figured I would simply get this data from the internet and parse it.
 
-And then I also wanted to print time in various formats. Wouldn't it be nice to have some function to print formatted time like many programming languages offer them?
+And then I wanted 12 or 24 hour time displayed, and thought about various formats for date and time. Wouldn't it be nice to have some function to print formatted time like many programming languages offer them?
 
-Overlooking the battlefield after implementing some part of this, it seemed like there had to be a better way. Especially, some way in which all this work would benefit more people. This is how ezTime, the project that was once only going to take a few days, came to be. 
+Overlooking the battlefield after implementing some part of this, it seemed like there had to be a better way. Especially, some way in which all this work would benefit more people. This is how ezTime &mdash; the project that was only going to take a few days &mdash; came to be. 
 
 ## ezTime is ...
 
@@ -391,7 +391,7 @@ You can create a place for ezTime to store the data about the timezone. That way
 String yourTZ.dateTime(TIME, String format = DEFAULT_TIMEFORMAT);
 ```
 
-We'll start with one of the most powerful functions of ezTime. With `dateTime` you can represent a date and/or a time in any way you want. You do this in the same way you do in many programming languages: by providing a special formatting string. Many characters in this string have special meanings and will be replaced. What this means is that `utc.dateTime("l, d-M-y H:i:s.v T")` might return `Saturday, 25-Aug-18 14:32:53.282 UTC`. Below is the list of characters and what they are replaced by. Any characters not on this list are simply not replaced and stay as is. See the last two entries for a way to use characters on this list in your string.
+We'll start with one of the most powerful functions of ezTime. With `dateTime` you can represent a date and/or a time in any way you want. You do this in the same way you do in many programming languages: by providing a special formatting string. Many characters in this string have special meanings and will be replaced. What this means is that `UTC.dateTime("l, d-M-y H:i:s.v T")` might return `Saturday, 25-Aug-18 14:32:53.282 UTC`. Below is the list of characters and what they are replaced by. Any characters not on this list are simply not replaced and stay as is. See the last two entries for a way to use characters on this list in your string.
 
 | char | replaced by 
 | ----- | :----- 
@@ -486,44 +486,100 @@ bool yourTZ.minuteChanged();
 
 ![](images/setting-clock.jpg)
 
-`void yourTZ.setTime(time_t t, uint16_t ms = 0);`
+### yourTZ.setTime
 
-`void yourTZ.setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr)`
+`void yourTZ.setTime(time_t t, uint16_t ms = 0)`
 
-## Various functions
+`void yourTZ.setTime(const uint8_t hr, const uint8_t min, const uint8_t sec,`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`const uint8_t day, const uint8_t mnth, uint16_t yr)`
 
-`time_t ezTime.makeOrdinalTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t ordinal, uint8_t wday, uint8_t month, int16_t year);`
+`setTime` pretty much does what it says on the package: it sets the time to the time specified, aither as separate elements or as a time_t value in seconds since Jan 1st 1970. If you have another source of time  - say, a GPS receiver - you can use `setTime` to set the time in the UTC timezone. Or you can set the local time in any other timezone you have set up and ezTime will set it's internal offset to the corresponding time in UTC so all timezones stay at the correct time.
+
+It's important to realise however that NTP updates will still become due and when they do time will be set to the time returned by the NTP server. If you do not want that, you can turn off NTP updates with `eztime.setInterval()`. If you do not use NTP updates at all and do not use the network lookups for timezone information either, you can compile ezTime with no network support by commenting out `#define EZTIME_NETWORK_ENABLE` in the `ezTime.h` file, creating a smaller library.
+
+## Working with time values
+
+### ezTime.breakTime
+
+`void ezTime.breakTime(time_t time, tmElements_t &tm)`
+
+If you create a `tmElements_t` structure and pass it to `breakTime`, it will be filled with the various numeric elements of the time value specified. tmElements_t looks as follows:
+
+```
+typedef struct  { 
+	uint8_t Second; 
+	uint8_t Minute; 
+	uint8_t Hour; 
+	uint8_t Wday;   // day of week, sunday is day 1
+	uint8_t Day;
+	uint8_t Month; 
+	uint8_t Year;   // offset from 1970; 
+} tmElements_t;
+```
+
+Meaning this code would print the hour:
+
+```
+tmElements_t tm;
+ezTime.breakTime(UTC.now(), tm);
+Serial.print(tm.Hour);
+```
+
+But `Serial.println(UTC.hour())` also works and is much simpler. `breakTime` is used internally and is a part of the original Time library, so it is available for you to use. Mind that the year is a single byte value, years since 1970.
+
+&nbsp;
+
+### ezTime.makeTime
+
+`time_t ezTime.makeTime(tmElements_t &tm);`
+
+This does the opposite of `ezTime.breakTime`: it takes a tmElements_t structure and turns it into a time_t value in seconds since Jan 1st 1970.
+
+`time_t ezTime.makeTime(uint8_t hour, uint8_t minute, uint8_t second,`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`uint8_t day, uint8_t month, int16_t year);`
+
+This version takes the various numeric elements as arguments. Note that you can pass the year both as years since 1970 and as full four digit years. 
+
+&nbsp;
+
+### makeOrdinalTime
+
+`time_t ezTime.makeOrdinalTime(uint8_t hour, uint8_t minute, uint8_t second,`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`uint8_t ordinal, uint8_t wday, uint8_t month, int16_t year);`
+
+With `makeOrdinalTime` you can get the `time_t` value for a date written as "the second Tuesday in March". The `ordinal` value is 1 for first, 2 for second, 3 for third, 4 for fourth and either 5 or 0 for the last of that weekday in the month. `wday` is weekdays starting with Sunday as 1. You can use the names of ordinals, months and weekdays in all caps as they are compiler defines. So the following would find the `time_t` value for midnight at the start of the first Thursday of the year in variable `year`.
+
+```
+ezTime.makeOrdinalTime(0, 0, 0, FIRST, THURSDAY, JANUARY, year)
+```
+
+> *This is actually a fragment of ezTime's own code, as it can print ISO week numbers and the first ISO week in a year is defined as the week that has the first Thursday in it.*
+
+&nbsp;
+
+### compileTime
 
 `time_t ezTime.compileTime(String compile_date = __DATE__, String compile_time = __TIME__);`
 
-`String ezTime.getBetween(String &haystack, String before_needle, String after_needle = "");`
+&nbsp;
+
+### *tzTime*
+
+`time_t yourTZ.tzTime(TIME)`
+
+This is the internal workhorse function that converts `time_t` in UTC to `time_t` in a timezone or vice versa. It is used by almost all the functions that apply to a timezone, and it takes `TIME` &mdash; meaning nothing for "right now", or a `time_t` value and an optional argument to specify whether that is `LOCAL_TIME` or `UTC_TIME`, and then it will convert to the opposite. `TIME_NOW` and `LAST_READ` are always output as `time_t` in that timezone.
+
+`time_t yourTZ.tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, bool &is_dst, int16_t &offset)`
+
+In this second form you have to supply all arguments, and it will fill your `tzname`, `is_dst` and `offset` variables with the appropriate values, the offset is in minutes west of UTC. Note that there are easier functions for you to get this information: `getTimezoneName`, `isDST` and `getOffset` respectively. If your code calls all three in a tight loop you might consider using `tzTime` instead as the other functions each do the whole parsing using `tzTime`, so you would be calling it three times and it does quite a bit. 
+
+&nbsp;
+
+## Various functions
 
 `String urlEncode(String str);`
 
 `String zeropad(uint32_t number, uint8_t length);`
 
-&nbsp;
-
-### *yourTZ.tzTime*
-
-`time_t yourTZ.tzTime(TIME,  tzTimeData_t *tztd = NULL);`
-
-This will tell you the time in seconds since 00:00 on Jan 1st 1970 in a timezone when you give it a timne in UTC, or vice versa. 
-
-TODO: explain better and also explain tztd
-
-
-## Compatibility with Arduino `Time` library
-
-`time_t ezTime.makeTime(tmElements_t &tm);`
-
-`time_t ezTime.makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, int16_t year);`
-
-`void ezTime.breakTime(time_t time, tmElements_t &tm)`
 
 ## Errors and debug information
-
-&nbsp;
 
 ### ezTime.debugLevel
 
@@ -557,6 +613,12 @@ When you call `error()`, it will also reset the error, so you can clear the last
 `String ezTime.errorString(ezError_t err = LAST_ERROR);`
 
 This will give you a string representation of the error specified. The pseudo-error `LAST_ERROR`, which is the default, will give you the textual representation of the last error. This will not reset the last error stored.
+
+&nbsp;
+
+## Compatibility with Arduino Time library
+
+## Smaller footprint, AVR Arduinos
 
 ## 2036 and 2038
 

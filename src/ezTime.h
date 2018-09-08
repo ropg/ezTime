@@ -273,7 +273,8 @@ class Timezone {
 		Timezone(bool locked_to_UTC = false);
 		bool setPosix(String posix);
 		String getPosix();
-		time_t tzTime(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME,  tzTimeData_t *tztd = NULL);
+		time_t tzTime(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+		time_t tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, bool &is_dst, int16_t &offset);		
 		void setDefault();
 		bool isDST(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
 		String getTimezoneName(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
@@ -296,14 +297,13 @@ class Timezone {
 		uint8_t weekISO(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// ISO-8601 week number (weeks starting on Monday)
 		uint16_t yearISO(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// ISO-8601 year, can differ from actual year, plus or minus one
 	private:
-		String _posix;
+		String _posix, _olsen;
 		bool _locked_to_UTC;
  		
 	#ifdef EZTIME_NETWORK_ENABLE
-	
 		public:
 			bool setLocation(String location = "");
-
+			String getOlsen();
 		#ifdef EZTIME_CACHE_EEPROM
 			public:
 				bool setCache(const int16_t address);
@@ -319,14 +319,12 @@ class Timezone {
  		#if defined(EZTIME_CACHE_EEPROM) || defined(EZTIME_CACHE_NVS)
  			public:
 				void clearCache(bool delete_section = false);
- 				String getOlsen();
  			private:
  				bool setCache();
   				bool writeCache(const String &str);
  				bool readCache(String &olsen, String &posix, uint8_t &months_since_jan_2018);
  				uint8_t _cache_month;
 		#endif
-		
 	#endif	
 
 };

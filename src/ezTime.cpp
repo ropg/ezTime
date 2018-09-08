@@ -501,9 +501,18 @@ Timezone::Timezone(bool locked_to_UTC /* = false */) {
 bool Timezone::setPosix(String posix) {
 	if (_locked_to_UTC) { ezTime.error(LOCKED_TO_UTC); return false; }
 	_posix = posix;
-}	
+	_olsen = "";
+}
 
-time_t Timezone::tzTime(time_t t /* = TIME_NOW */,  ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */, tzTimeData_t *tztd /* = NULL */) {
+time_t Timezone::tzTime(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME) {
+	String tzname;
+	bool is_dst;
+	int16_t offset;
+	return tzTime(t, local_or_utc, tzname, is_dst, offset);
+}
+
+time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, bool &is_dst, int16_t &offset) {
+
 	if (t == TIME_NOW) {
 		t = ezTime.now(); 
 		local_or_utc = UTC_TIME;
@@ -526,13 +535,10 @@ time_t Timezone::tzTime(time_t t /* = TIME_NOW */,  ezLocalOrUTC_t local_or_utc 
 	bool ignore_nums = false;
 	char c = 1; // Dummy value to get while(newchar) started
 	uint8_t strpos = 0;
-	char (*std_tzname)[8];
-	char (*dst_tzname)[8];
-	if (tztd) {
-		tztd->stdname_end = _posix.length() - 1;
-		tztd->dstname_begin = _posix.length();
-		tztd->dstname_end = _posix.length();
-	}
+	uint8_t stdname_end = _posix.length() - 1;
+	uint8_t dstname_begin = _posix.length();
+	uint8_t dstname_end = _posix.length();
+
 	while (strpos < _posix.length()) {
 		c = (char)_posix[strpos];
 
@@ -544,7 +550,7 @@ time_t Timezone::tzTime(time_t t /* = TIME_NOW */,  ezLocalOrUTC_t local_or_utc 
 			if (c == '>') ignore_nums = false;
 			if (!ignore_nums && (isDigit(c) || c == '-'  || c == '+')) {
 				state = OFFSET_HR;
-				if (tztd) tztd->stdname_end = strpos - 1;
+				stdname_end = strpos - 1;
 			}
 		}
 		if (c && state == OFFSET_HR) {
@@ -555,7 +561,7 @@ time_t Timezone::tzTime(time_t t /* = TIME_NOW */,  ezLocalOrUTC_t local_or_utc 
 				c = 0;
 			} else if (c != '-' && !isDigit(c)) {
 				state = DST_NAME;
-				if (tztd) tztd->dstname_begin = strpos;
+				dstname_begin = strpos;
 			} else {
 				if (!offset_hr) offset_hr = atoi(_posix.c_str() + strpos);
 			}
@@ -574,10 +580,10 @@ time_t Timezone::tzTime(time_t t /* = TIME_NOW */,  ezLocalOrUTC_t local_or_utc 
 			if (c == ',') {
 				state = START_MONTH;
 				c = 0;
-				if (tztd) tztd->dstname_end = strpos - 1;
+				dstname_end = strpos - 1;
 			} else if (!ignore_nums && (c == '-' || isDigit(c))) {
 				state = DST_SHIFT_HR;
-				if (tztd) tztd->dstname_end = strpos - 1;
+				dstname_end = strpos - 1;
 			}
 		}		
 		if (c && state == DST_SHIFT_HR) {
@@ -663,13 +669,11 @@ time_t Timezone::tzTime(time_t t /* = TIME_NOW */,  ezLocalOrUTC_t local_or_utc 
 	
 	int16_t std_offset = (offset_hr < 0) ? offset_hr * 60 - offset_min : offset_hr * 60 + offset_min;
 	
-	if (_posix.substring(0,3) == "UTC" && std_offset) _posix.replace("UTC", "???");
-	
+	tzname = _posix.substring(0, stdname_end + 1);	// Overwritten with dstname later if needed
 	if (!start_month) {
-		if (tztd) {
-			tztd->is_dst = false;
-			tztd->offset = std_offset;
-		}
+		if (tzname == "UTC" && std_offset) tzname = "???";
+		is_dst = false;
+		offset = std_offset;
 		return t - std_offset * 60;
 	}
 
@@ -686,29 +690,28 @@ time_t Timezone::tzTime(time_t t /* = TIME_NOW */,  ezLocalOrUTC_t local_or_utc 
 		dst_start -= std_offset;
 		dst_end -= dst_offset;
 	}
-	bool dst;
+	
     if (dst_end > dst_start) {
-        dst = (t >= dst_start && t < dst_end);		// northern hemisphere
+        is_dst = (t >= dst_start && t < dst_end);		// northern hemisphere
     } else {
-        dst = !(t >= dst_end && t < dst_start);		// southern hemisphere
+        is_dst = !(t >= dst_end && t < dst_start);		// southern hemisphere
     }
 
-	int16_t offset = dst ? dst_offset : std_offset;
-
-	if (tztd) {
-		tztd->is_dst = dst ? true : false;
-		tztd->offset = offset;
+	if (is_dst) {
+		offset = dst_offset;
+		tzname = _posix.substring(dstname_begin, dstname_end + 1);
+	} else {
+		offset = std_offset;
 	}
 
-	if (local_or_utc == LOCAL_TIME) return t + offset * 60LL;
-
-	return t - offset * 60LL;
-
+	if (local_or_utc == LOCAL_TIME) {
+		return t + offset * 60LL;
+	} else {
+		return t - offset * 60LL;
+	}
 }
 
 String Timezone::getPosix() { return _posix; }
-
-
 
 #ifdef EZTIME_NETWORK_ENABLE
 
@@ -819,6 +822,7 @@ String Timezone::getPosix() { return _posix; }
 			uint8_t months_since_jan_2018;
 			if (readCache(olsen, posix, months_since_jan_2018)) {
 				_posix = posix;
+				_olsen = olsen;
 				_cache_month = months_since_jan_2018;
 				if ( (year() - 2018) * 12 + month(LAST_READ) - months_since_jan_2018 > MAX_CACHE_AGE_MONTHS) {
 					setLocation(olsen);
@@ -849,10 +853,7 @@ String Timezone::getPosix() { return _posix; }
 		}
 
 		String Timezone::getOlsen() {
-			String olsen, posix;
-			uint8_t months_since_jan_2018;
-			if (readCache(olsen, posix, months_since_jan_2018)) return olsen;
-			return "";
+			return _olsen;
 		}	
 
 		bool Timezone::writeCache(const String &str) {
@@ -988,9 +989,7 @@ String Timezone::getPosix() { return _posix; }
 						olsen.setCharAt(n, olsen_lowercase[n]);
 					}
 				}
-
-				info(F("Retrieved from cache: ")); info(olsen); info (F(" : ")); infoln(posix);
-				
+				info(F("Cache read. Olsen: ")); info(olsen); info (F("  Posix: ")); infoln(posix);
 				return true;
 			#endif						
 			
@@ -1007,7 +1006,8 @@ String Timezone::getPosix() { return _posix; }
 				uint8_t second_space = olsen.indexOf(' ', first_space + 1);
 				months_since_jan_2018 = olsen.toInt();
 				posix = olsen.substring(second_space + 1);
-				olsen = substring(olsen, first_space + 1, second_space);				
+				olsen = substring(olsen, first_space + 1, second_space);
+				info(F("Cache read. Olsen: ")); info(olsen); info (F("  Posix: ")); infoln(posix);
 				return true;
 			#endif
 		}
@@ -1023,27 +1023,27 @@ void Timezone::setDefault() {
 }
 
 bool Timezone::isDST(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
-	tzTimeData_t* tztd = (tzTimeData_t*) malloc(sizeof *tztd);
-	t = tzTime(t, local_or_utc, tztd);
-	bool tmp = tztd->is_dst;
-	free(tztd);
-	return tmp;
+	String tzname;
+	bool is_dst;
+	int16_t offset;
+	t = tzTime(t, local_or_utc, tzname, is_dst, offset);
+	return is_dst;
 }
 
 String Timezone::getTimezoneName(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
-	tzTimeData_t* tztd = (tzTimeData_t*) malloc(sizeof *tztd);
-	t = tzTime(t, local_or_utc, tztd);
-	String tmp = tztd->is_dst ? _posix.substring(tztd->dstname_begin, tztd->dstname_end + 1) : _posix.substring(0, tztd->stdname_end + 1);
-	free(tztd);
-	return tmp;
+	String tzname;
+	bool is_dst;
+	int16_t offset;
+	t = tzTime(t, local_or_utc, tzname, is_dst, offset);
+	return tzname;
 }
 
 int16_t Timezone::getOffset(time_t t /*= TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
-	tzTimeData_t* tztd = (tzTimeData_t*) malloc(sizeof *tztd);
-	t = tzTime(t, local_or_utc, tztd);
-	int16_t tmp = tztd->offset;
-	free(tztd);
-	return tmp;
+	String tzname;
+	bool is_dst;
+	int16_t offset;
+	t = tzTime(t, local_or_utc, tzname, is_dst, offset);
+	return offset;
 }
 
 time_t Timezone::now() {
@@ -1086,8 +1086,10 @@ String Timezone::dateTime(time_t t, String format /* = DEFAULT_TIMEFORMAT */) {
 
 String Timezone::dateTime(time_t t, ezLocalOrUTC_t local_or_utc, String format /* = DEFAULT_TIMEFORMAT */) {
 
-	tzTimeData_t* tztd = (tzTimeData_t*) malloc(sizeof *tztd);
-	t = tzTime(t, LOCAL_TIME, tztd);
+	String tzname;
+	bool is_dst;
+	int16_t offset;
+	t = tzTime(t, LOCAL_TIME, tzname, is_dst, offset);
 
 	String tmpstr;
 	uint8_t tmpint8;
@@ -1200,7 +1202,7 @@ String Timezone::dateTime(time_t t, ezLocalOrUTC_t local_or_utc, String format /
 					out += ezTime.zeropad(tm.Second, 2);
 					break;
 				case 'T':	// abbreviation for timezone
-					out += tztd->is_dst ? _posix.substring(tztd->dstname_begin, tztd->dstname_end + 1) : _posix.substring(0, tztd->stdname_end + 1);	
+					out += tzname;	
 					break;
 				case 'v':	// milliseconds as three digits
 					out += ezTime.zeropad(ezTime._last_read_ms, 3);				
@@ -1210,15 +1212,15 @@ String Timezone::dateTime(time_t t, ezLocalOrUTC_t local_or_utc, String format /
  					break;
 				case 'O':	// Difference to Greenwich time (GMT) in hours and minutes written together (+0200)
 				case 'P':	// Difference to Greenwich time (GMT) in hours and minutes written with colon (+02:00)
-					o = tztd->offset;
-					out += (o < 0) ? "+" : "-";		// reverseed from our offset
+					o = offset;
+					out += (o < 0) ? "+" : "-";		// reversed from our offset
 					if (o < 0) o = 0 - o;
 					out += ezTime.zeropad(o / 60, 2);
 					out += (c == 'P') ? ":" : "";
 					out += ezTime.zeropad(o % 60, 2);
 					break;	
 				case 'Z':	//Timezone offset in seconds. West of UTC is negative, east of UTC is positive.
-					out += String(0 - tztd->offset * 60);
+					out += String(0 - offset * 60);
 					break;
 				case 'z':
 					out += String(dayOfYear(t)); // The day of the year (starting from 0)
@@ -1236,8 +1238,6 @@ String Timezone::dateTime(time_t t, ezLocalOrUTC_t local_or_utc, String format /
 			}
 		}
 	}
-	
-	free(tztd);
 	
 	return out;
 }
