@@ -202,7 +202,7 @@ For example, if you have set up a timezone called Berlin, `Berlin.isDST(15363142
  
 ### What happens when you include the library
 
-It all starts when you include the library with  `#include <ezTime.h>`. From that point forward there is an object instance called `ezTime` with methods to control the behaviour of ezTime, as well as a timezone object called `UTC`, and a reference to this object called `defaultTZ` (which you may point to a different timezone later).
+It all starts when you include the library with  `#include <ezTime.h>`. From that point forward there is an object instance called `time` with methods to control the behaviour of ezTime, as well as a timezone object called `UTC`, and a reference to this object called `defaultTZ` (which you may point to a different timezone later).
 
 ### No daemons here
 
