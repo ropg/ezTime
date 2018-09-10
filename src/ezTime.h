@@ -203,7 +203,7 @@ class EZtime {
 
 	////////// Error handing
 	public:
-		static ezError_t error();								// Returns ezError_t enumeration of last error, resets _last_error to OK 
+		static ezError_t error(bool reset = false);				// Returns ezError_t enumeration of last error 
 		static String errorString(ezError_t err = LAST_ERROR);	// Human-readable form of last error.
 		static void debugLevel(ezDebugLevel_t level);			// Sets serial printing of debug info to specified ezDebugLevel_t enumeration
 	private:
@@ -216,7 +216,6 @@ class EZtime {
 	public:
 		EZtime();
 		static timeStatus_t timeStatus();
-		static time_t now(bool update_last_read = true);
 		static void events();
 		static void breakTime(time_t time, tmElements_t &tm);  // break time_t into elements
 		static time_t makeTime(tmElements_t &tm);  // convert time elements into time_t
@@ -231,6 +230,7 @@ class EZtime {
 		static void deleteEvent(void (*function)());
 		
 	private:
+		static time_t now(bool update_last_read = true);
 		static ezEvent_t _events[MAX_EVENTS];
 		static time_t _last_sync_time, _last_read_t;
 		static uint32_t _last_sync_millis;

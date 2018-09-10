@@ -74,9 +74,9 @@ String EZtime::debugLevelString(ezDebugLevel_t level) {
 	}
 }
 
-ezError_t EZtime::error() { 
+ezError_t EZtime::error(bool reset /* = false */) { 
 	ezError_t tmp = _last_error;
-	_last_error = NO_ERROR;
+	if (reset) _last_error = NO_ERROR;
 	return tmp;
 }
 
@@ -161,8 +161,10 @@ void EZtime::events() {
 }
 
 void EZtime::deleteEvent(uint8_t event_handle) { 
-	debug(F("Deleted event (#")); debug(event_handle); debug(F("), set for ")); debugln(UTC.dateTime(_events[event_handle - 1].time));	
-	_events[event_handle - 1] = { 0, NULL };
+	if (event_handle && event_handle <= MAX_EVENTS) {
+		debug(F("Deleted event (#")); debug(event_handle); debug(F("), set for ")); debugln(UTC.dateTime(_events[event_handle - 1].time));	
+		_events[event_handle - 1] = { 0, NULL };
+	}
 }
 
 void EZtime::deleteEvent(void (*function)()) { 

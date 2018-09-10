@@ -31,6 +31,6 @@ void setup() {
 }
 
 void loop() {
-	now();
+	time.events();
 	delay(1000);
 }
