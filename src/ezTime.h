@@ -12,10 +12,10 @@
 #define EZTIME_NETWORK_ENABLE
 
 // Arduino Ethernet shields
-// #define EZTIME_ETHERNET
+#define EZTIME_ETHERNET
 
 // Uncomment one of the below to only put only messages up to a certain level in the compiled code
-// (You still need to turn them on with ezTime.debugLevel(someLevel)  to see them)
+// (You still need to turn them on with time.debugLevel(someLevel)  to see them)
 // #define EZTIME_MAX_DEBUGLEVEL_NONE
 // #define EZTIME_MAX_DEBUGLEVEL_ERROR
 // #define EZTIME_MAX_DEBUGLEVEL_INFO
@@ -53,7 +53,8 @@ typedef enum {
 	DATA_NOT_FOUND,
 	LOCKED_TO_UTC,
 	NO_CACHE_SET,
-	CACHE_TOO_SMALL
+	CACHE_TOO_SMALL,
+	TOO_MANY_EVENTS
 } ezError_t;
 
 typedef enum {
@@ -69,7 +70,7 @@ typedef enum {
 } ezLocalOrUTC_t;
 
 // Defines that can make your code more readable. For example, if you are looking for the first
-// Thursday in a year, you could write:  ezTime.makeOrdinalTime(0, 0, 0, JANUARY, FIRST, THURSDAY, year)
+// Thursday in a year, you could write:  time.makeOrdinalTime(0, 0, 0, JANUARY, FIRST, THURSDAY, year)
 // (As is done within ezTime to calculate ISO weeks)
 
 #define SUNDAY			1
@@ -107,26 +108,26 @@ typedef enum {
 	#define	debug(args...) 		""
 	#define	debugln(args...) 	""
 #elif defined(EZTIME_MAX_DEBUGLEVEL_ERROR)
-	#define	err(args...) 		if (ezTime._debug_level >= ERROR) Serial.print(args)
-	#define	errln(args...) 		if (ezTime._debug_level >= ERROR) Serial.println(args)
+	#define	err(args...) 		if (time._debug_level >= ERROR) Serial.print(args)
+	#define	errln(args...) 		if (time._debug_level >= ERROR) Serial.println(args)
 	#define	info(args...) 		""
 	#define	infoln(args...) 	""
 	#define	debug(args...) 		""
 	#define	debugln(args...) 	""
 #elif defined(EZTIME_MAX_DEBUGLELEL_INFO)
-	#define	err(args...) 		if (ezTime._debug_level >= ERROR) Serial.print(args)
-	#define	errln(args...) 		if (ezTime._debug_level >= ERROR) Serial.println(args)
-	#define	info(args...) 		if (ezTime._debug_level >= INFO) Serial.print(args)
-	#define	infoln(args...) 	if (ezTime._debug_level >= INFO) Serial.println(args)
+	#define	err(args...) 		if (time._debug_level >= ERROR) Serial.print(args)
+	#define	errln(args...) 		if (time._debug_level >= ERROR) Serial.println(args)
+	#define	info(args...) 		if (time._debug_level >= INFO) Serial.print(args)
+	#define	infoln(args...) 	if (time._debug_level >= INFO) Serial.println(args)
 	#define	debug(args...) 		""
 	#define	debugln(args...) 	""
 #else		// nothing specified compiles everything in.
-	#define	err(args...) 		if (ezTime._debug_level >= ERROR) Serial.print(args)
-	#define	errln(args...) 		if (ezTime._debug_level >= ERROR) Serial.println(args)
-	#define	info(args...) 		if (ezTime._debug_level >= INFO) Serial.print(args)
-	#define	infoln(args...) 	if (ezTime._debug_level >= INFO) Serial.println(args)
-	#define	debug(args...) 		if (ezTime._debug_level >= DEBUG) Serial.print(args)
-	#define	debugln(args...) 	if (ezTime._debug_level >= DEBUG) Serial.println(args)
+	#define	err(args...) 		if (time._debug_level >= ERROR) Serial.print(args)
+	#define	errln(args...) 		if (time._debug_level >= ERROR) Serial.println(args)
+	#define	info(args...) 		if (time._debug_level >= INFO) Serial.print(args)
+	#define	infoln(args...) 	if (time._debug_level >= INFO) Serial.println(args)
+	#define	debug(args...) 		if (time._debug_level >= DEBUG) Serial.print(args)
+	#define	debugln(args...) 	if (time._debug_level >= DEBUG) Serial.println(args)
 #endif
 
 ////////////////////////
@@ -151,13 +152,12 @@ typedef enum {
 	timeSet
 } timeStatus_t;
 
-typedef struct  { 
-	uint8_t stdname_end;			//Positions in _posix String. stdname_begin fixed at 0
-	uint8_t dstname_begin;
-	uint8_t dstname_end;
-	bool is_dst;
-	int16_t offset;					// offset from UTC in minutes
-} tzTimeData_t;
+typedef struct {
+	time_t time;
+	void (*function)();
+} ezEvent_t;
+
+#define MAX_EVENTS			8
 
 #define TIME_NOW			0xFFFFFFFF
 #define LAST_READ			0xFFFFFFFE
@@ -217,6 +217,7 @@ class EZtime {
 		EZtime();
 		static timeStatus_t timeStatus();
 		static time_t now(bool update_last_read = true);
+		static void events();
 		static void breakTime(time_t time, tmElements_t &tm);  // break time_t into elements
 		static time_t makeTime(tmElements_t &tm);  // convert time elements into time_t
 		static time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, uint16_t year);
@@ -226,28 +227,29 @@ class EZtime {
 		static String dayString(uint8_t day);
 		static bool secondChanged();
 		static bool minuteChanged();
+		static void deleteEvent(uint8_t event_handle);
+		static void deleteEvent(void (*function)());
 		
 	private:
+		static ezEvent_t _events[MAX_EVENTS];
 		static time_t _last_sync_time, _last_read_t;
 		static uint32_t _last_sync_millis;
 		static bool _ntp_enabled;
 		static uint16_t _last_read_ms;
 		static timeStatus_t _time_status;
+		static bool _initialised;
 
 	#ifdef EZTIME_NETWORK_ENABLE
 
 		public:
 			static bool queryNTP(String server, time_t &t, unsigned long &measured_at);	// measured_at: millis() at measurement, t is converted to secs since 1970
-			static void updateNow();
+			static void updateNTP();
 			static void setServer(String ntp_server = NTP_SERVER);
 			static void setInterval(uint16_t seconds = 0); 				// 0 = no NTP updates
 			static bool waitForSync(uint16_t timeout = 0);				// timeout in seconds
 
 		private:
-			static void updateIfNeeded();
-			static uint16_t _update_interval;		// in seconds
-			static uint32_t _update_due;
-			static uint16_t _update_backoff;		// seconds to add to _update_due to retry NTP
+			static uint16_t _ntp_interval;		// in seconds
 			static String _ntp_server;
 
 	#endif // EZTIME_NETWORK_ENABLE
@@ -260,7 +262,7 @@ class EZtime {
 		
 };
 
-extern EZtime ezTime;			// declares the "ezTime" instance of the "EZtime" class
+extern EZtime time;			// declares the "time" instance of the "EZtime" class
 
 
 //
@@ -280,6 +282,8 @@ class Timezone {
 		String getTimezoneName(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
 		int16_t getOffset(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
 		time_t now();
+		uint8_t setEvent(void (*function)(), time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+		uint8_t setEvent(void (*function)(), const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr);
 		void setTime(time_t t, uint16_t ms = 0);
 		void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr);
 		String dateTime(String format = DEFAULT_TIMEFORMAT);

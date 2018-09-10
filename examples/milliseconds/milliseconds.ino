@@ -6,8 +6,8 @@ void setup() {
 	Serial.begin(115200);
 	WiFi.begin("your-ssid", "your-password");
 
-	ezTime.setInterval(60);
-	ezTime.waitForSync();
+	time.setInterval(60);
+	time.waitForSync();
 
 	Serial.println();
 

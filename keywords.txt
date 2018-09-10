@@ -1,11 +1,13 @@
 # ezTime object
 
-ezTime	KEYWORD3
+time	KEYWORD3
 error	KEYWORD2
 errorString	KEYWORD2
 debugLevel	KEYWORD2
 timeStatus	KEYWORD2
 now	KEYWORD2
+events	KEYWORD2
+deleteEvent	KEYWORD2
 breakTime	KEYWORD2
 makeTime	KEYWORD2
 makeUmpteenthTime	KEYWORD2
@@ -15,7 +17,7 @@ dayString	KEYWORD2
 secondChanged	KEYWORD2
 minuteChanged	KEYWORD2
 queryNTP	KEYWORD2
-updateNow	KEYWORD2
+updateNTP	KEYWORD2
 setServer	KEYWORD2
 setInterval	KEYWORD2
 waitForSync	KEYWORD2
@@ -30,6 +32,7 @@ DefaultTZ	KEYWORD3
 setPosix	KEYWORD2
 getPosix	KEYWORD2
 tzTime	KEYWORD2
+setEvent	KEYWORD2
 setDefault	KEYWORD2
 isDST	KEYWORD2
 getTimezoneName	KEYWORD2
@@ -155,4 +158,3 @@ SECOND	LITERAL1
 THIRD	LITERAL1
 FOURTH	LITERAL1
 LAST	LITERAL1
-

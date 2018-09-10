@@ -24,7 +24,7 @@ void setup() {
 	Serial.println();
 
 	local.setPosix(LOCALTZ_POSIX);
-	local.setTime(ezTime.compileTime());
+	local.setTime(time.compileTime());
 	Serial.println("Local time  :  " + local.dateTime());
 
 	berlin.setPosix("CET-1CEST,M3.4.0/2,M10.4.0/3");

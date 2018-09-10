@@ -1,10 +1,10 @@
 # ezTime, an Arduino library for all of time <sup>*</sup>
 
-**ezTime - pronounced "Easy Time" - is a very easy to use Arduino time and date library that provides NTP network time lookups, extensive timezone support, formatted time and date strings, millisecond precision and more.**
+**ezTime &mdash; pronounced "Easy Time" &mdash; is a very easy to use Arduino time and date library that provides NTP network time lookups, extensive timezone support, formatted time and date strings, user events, millisecond precision and more.**
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<sup>* limitations may apply, see "2036 and 2038" chapter</sup></div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<sup>* limitations may apply, see "2036 and 2038" chapter</sup>
 
-<center><img src ="images/moving-clock.gif" /></center>
+<img src ="images/moving-clock.gif" />
 
 ## A brief history of ezTime
 
@@ -26,13 +26,15 @@ Overlooking the battlefield after implementing some part of this, it seemed like
 
 **backwards compatible**: Anything written for the existing Arduino time library will still work. You can set which timezone the sketch should be in, or have it be in UTC which is the default. But you can also set and express time referring to multiple timezones, all very easy and intuitive.
 
+**eventful**: You can set events to have ezTime execute your own functions at a given time, and delete the events again if you change your mind.
+
 **robust**: It doesn't fail if the timezone api goes away: it can use cached data, which ezTime can store in EEPROM (AVR Arduinos) or NVS (ESP32 through Preferences library). 
 
 **informative**: No need to guess while you're working on something, ezTime can print messages to the serial port at your desired level of detail, telling you about the timezone's daylight savings info it receives or when it gets an NTP update and by how much your internal clock was off, for instance.
 
-**time-saving**: No more time spent on writing code to print date or time in some nicer way. Print things like "8:20 PM" or "Saturday the 23rd of August 2018" with ease. Prevent display-flicker with minuteChanged() and secondChanged() functions without storing any values to compare.
+**time-saving**: No more time spent on writing code to print date or time in some nicer way. Print things like "8:20 PM" or "Saturday the 23rd of August 2018" with ease. Prevent display-flicker with `minuteChanged()` and `secondChanged()` functions without storing any values to compare.
 
-**small enough**: Works with all features and full debugging information on an Arduino Uno with an Ethernet Shield, leaving 2/3 of RAM but not too much flash for you to work with. (Even on a good day there isn't that much left if you want to do anything that involves networking.) Various `#define` options let you leave parts of it out if you want to make it smaller: you can even leave out the networking altogether if you have a different time source.
+**small enough**: Works with all features and full debugging information on an Arduino Uno with an Ethernet Shield, leaving 2/3 of RAM but not too much flash for you to work with. (Even on a good day there isn't that much left if you want to do anything that involves networking.) Various `#define` options let you leave parts of the library out if you want to make it smaller: you can even leave out the networking altogether if you have a different time source.
 
 **easy to use**: Don't believe it until you see it. Have a look at some of these examples to see how easy it is to use.
 
@@ -50,7 +52,7 @@ void setup() {
 	Serial.begin(115200);
 	WiFi.begin("your-ssid", "your-password");
 
-	ezTime.waitForSync();
+	time.waitForSync();
 
 	Serial.println("UTC: " + UTC.dateTime());
 	
@@ -126,8 +128,8 @@ Saturday, 25-Aug-18 14:32:53.303 UTC
 
 ```
 [...]
-	ezTime.setInterval(60);
-	ezTime.setDebugLevel(INFO);
+	time.setInterval(60);
+	time.setDebugLevel(INFO);
 }
 
 void loop() {
@@ -163,7 +165,7 @@ ezTime is an Arduino library. To start using it with the Arduino IDE:
 * Click the row to select the library.
 * Click the Install button to install the library.
 
-in File -> Examples you will now see an ezTime heading down under "Examples from custom libraries". You can try running some of these examples to see if it all works. ezTime is made to be, as the name implies, quite easy to use. So you'll probably understand a lot of how things work from just looking at the examples. Now either just play with those and use the rest of this documentation only when you get stuck, or keep reading to see how things work in ezTime.
+in File -> Examples you will now see an ezTime heading down under "Examples from custom libraries". You can try running some of these examples to see if it all works. ezTime is made to be, as the name implies, quite easy to use. So you'll probably understand a lot of how things work from just looking at the examples. Now either just play with those and use the rest of this documentation only when you get stuck, or keep reading to see how things work in time.
 
 # &nbsp;
 
@@ -204,13 +206,13 @@ It all starts when you include the library with  `#include <ezTime.h>`. From tha
 
 ### No daemons here
 
-It is important to understand what ezTime does NOT do. It does not somehow create a background process that keeps time, contacts servers, or whatever. The Arduino does the timekeeping for us with its `millis()` counter, which keeps the time in milliseconds since the Arduino started. All ezTime does when it synchronizes time is to store a time (in seconds since 1970) and the position of the millis counter when that was. By seeing how much the millis counter has advanced and adding that starting point since 1970, ezTime tells time. But that internal clock isn't perfect, it may - very slowly - drift away from the actual time. So periodically when you ask it something, it will discover that it's time to re-synchronize its own clock with the NTP server, and then it'll go out, do that and take, say, 50 ms longer to respond back to your code. But it all happens only when you ask for it.
+It is important to understand what ezTime does NOT do. It does not somehow create a background process that keeps time, contacts servers, or whatever. The Arduino does the timekeeping for us with its `millis()` counter, which keeps the time in milliseconds since the Arduino started. All ezTime does when it synchronizes time is to store a time (in seconds since 1970) and the position of the millis counter when that was. By seeing how much the millis counter has advanced and adding that starting point since 1970, ezTime tells time. But that internal clock isn't perfect, it may &mdash; very slowly &mdash; drift away from the actual time. So periodically when you ask it something, it will discover that it's time to re-synchronize its own clock with the NTP server, and then it'll go out, do that and take, say, 50 ms longer to respond back to your code. But it all happens only when you ask for it.
 
 ### But I only just woke up !
 
 Your code might call `Serial.println(UTC.dateTime());` to print a complete textual representation of date and time in the default format to the serial port. The library would find out that time had not been synchronized yet, and it would send off an NTP request to one of the NTP servers that `pool.ntp.org` resolves to. If your Arduino has just woken up, it probably hasn't gotten its DHCP information, or is not connected to the WiFi network just yet. And so the time lookup would fail and the call to `.dateTime` would return a String with the date and time just after midnight on the 1st of January 1970: the zero-point for the unix-style time counter used by ezTime. It would later correct to the real time, but that's not pretty.
 
-Worse is when you set up a timezone for which you would like to retrieve the daylight savings rules from the server: it can't do that if the connection isn't up yet. So that's why there's a function called `ezTime.waitForSync` that simply requests the time until it is synchronized (or until a set number of seconds passes, see below).
+Worse is when you set up a timezone for which you would like to retrieve the daylight savings rules from the server: it can't do that if the connection isn't up yet. So that's why there's a function called `time.waitForSync` that simply requests the time until it is synchronized (or until a set number of seconds passes, see below).
 
 &nbsp;
 
@@ -220,11 +222,11 @@ The NTP request from the scenario above failed because the network wasn't up yet
 
 &nbsp;
 
-### ezTime.timeStatus
+### time.timeStatus
 
-`timeStatus_t ezTime.timeStatus();`
+`timeStatus_t time.timeStatus();`
 
-Returns what state the clock is in. `ezTime.timeStatus()` will return one of:
+Returns what state the clock is in. `time.timeStatus()` will return one of:
 
 | timeStatus | meaning |
 |----|----|
@@ -234,39 +236,39 @@ Returns what state the clock is in. `ezTime.timeStatus()` will return one of:
 
 &nbsp;
 
-### ezTime.waitForSync
+### time.waitForSync
 
-`bool ezTime.waitForSync(uint16_t timeout = 0);`
+`bool time.waitForSync(uint16_t timeout = 0);`
 
-If your code uses timezones other than UTC, it might want to wait to initialise them until there is a valid time to see if the cached timezone definitions are still current. And if you are displaying a calendar or clock, it might look silly if it first says midnight on January 1st 1970 before showing the real time. `ezTime.waitForSync` will wait for the network to connect, and then for the time to be synchronized before returning `true`. If you specify a timeout (in seconds), it will return after that many seconds even if the clock is not in sync yet, returning `false`. (ezTime error `TIMEOUT`, see the chapter on error and debug messages further down)
-
-&nbsp;
-
-### *ezTime.setServer and ezTime.setInterval*
-
-`void ezTime.setServer(String ntp_server = NTP_SERVER);`
-
-`void ezTime.setInterval(uint16_t seconds = 0);`
-
-By default, ezTime is set to poll `pool.ntp.org` every 10 minutes. These defaults should work for most people, but you can change them by specifying a new server with `ezTime.setServer` or a new interval (in seconds) with ezTime.setInterval. If you call setInterval with an interval of 0 seconds or call it as `ezTime.setInterval()`, no more NTP queries will be made.
+If your code uses timezones other than UTC, it might want to wait to initialise them until there is a valid time to see if the cached timezone definitions are still current. And if you are displaying a calendar or clock, it might look silly if it first says midnight on January 1st 1970 before showing the real time. `time.waitForSync` will wait for the network to connect, and then for the time to be synchronized before returning `true`. If you specify a timeout (in seconds), it will return after that many seconds even if the clock is not in sync yet, returning `false`. (ezTime error `TIMEOUT`, see the chapter on error and debug messages further down)
 
 &nbsp;
 
-### *ezTime.updateNow*
+### *time.setServer and time.setInterval*
 
-`void ezTime.updateNow();`
+`void time.setServer(String ntp_server = NTP_SERVER);`
 
-Schedules the next update to happen immediately, and then tries to query the NTP server. If that fails, it will keep retrying when you ask for new time information, but not more often than once every 5 seconds. (Defined by `NTP_RETRY` in `ezTime.h`.)
+`void time.setInterval(uint16_t seconds = 0);`
+
+By default, ezTime is set to poll `pool.ntp.org` every 10 minutes. These defaults should work for most people, but you can change them by specifying a new server with `time.setServer` or a new interval (in seconds) with time.setInterval. If you call setInterval with an interval of 0 seconds or call it as `time.setInterval()`, no more NTP queries will be made.
 
 &nbsp;
 
-### *ezTime.queryNTP*
+### *time.updateNTP*
 
-`bool ezTime.queryNTP(String server, time_t &t, unsigned long &measured_at);`
+`void time.updateNTP();`
+
+Updates the time from the NTP server immediately. Will keep retrying every 5 seconds (defined by `NTP_RETRY` in `ezTime.h`), will schedule the next update to happen after the normal interval.
+
+&nbsp;
+
+### *time.queryNTP*
+
+`bool time.queryNTP(String server, time_t &t, unsigned long &measured_at);`
 
 This will send a single query to the NTP server your specify. It will put, in the `t` and `measured_at` variables passed by reference, the UTC unix-time and the `millis()` counter at the time the exact second happened. It does this by subtracting from `millis()` the fractional seconds received in the answer, as well as half the time it took to get an answer. This means it assumes the network delay was symmetrical, meaning it took just as long for the request to get to the server as for the answer to get back. 
 
-If the time server answers, `ezTime.queryNTP` returns `true`. If `false` is returned, `ezTime.error()` will return either `NO_NETWORK` (if the WiFi is not connected) or `TIMEOUT` if a response took more than 1500 milliseconds (defined by `NTP_TIMEOUT` in `ezTime.h`). 
+If the time server answers, `time.queryNTP` returns `true`. If `false` is returned, `time.error()` will return either `NO_NETWORK` (if the WiFi is not connected) or `TIMEOUT` if a response took more than 1500 milliseconds (defined by `NTP_TIMEOUT` in `ezTime.h`). 
 
 Note that this function is used internally by ezTime, but does not by itself set the time ezTime keeps. You will likely never need to call this from your code.
 
@@ -302,7 +304,7 @@ Internally, ezTime stores everything it knows about a timezone as two strings. O
 
 `void yourTZ.setDefault()`
 
-`#include <ezTime.h>` includes the library, creates `ezTime` object and `UTC` instance of `Timezone` class, as well as `defaultTZ`, which is a reference to UTC unless you set it to another timzone by calling `yourTZ.setDefault()`. The functions in the root namespace like `hour()` and `minute()` - without a timezone in front - are interpreted as if passed to the default timezone. So if you have ezisting code, just setting up a timezone and making it the default should cause that code to work as if the time was set in local time. 
+`#include <ezTime.h>` includes the library, creates `ezTime` object and `UTC` instance of `Timezone` class, as well as `defaultTZ`, which is a reference to UTC unless you set it to another timzone by calling `yourTZ.setDefault()`. The functions in the root namespace like `hour()` and `minute()` &mdash; without a timezone in front &mdash; are interpreted as if passed to the default timezone. So if you have ezisting code, just setting up a timezone and making it the default should cause that code to work as if the time was set in local time. 
 
 &nbsp;
 
@@ -342,7 +344,7 @@ Tells you whether DST is in effect at a given time in this timezone. If you do n
 
 `String getTimezoneName(TIME);`
 
-Provides the short code for the timezone, like `IST` for India, or `CET` (during standard time) or `CEST` (during Daylight Saving Time) for most of Europe. 
+Provides the current short code for the timezone, like `IST` for India, or `CET` (during standard time) or `CEST` (during Daylight Saving Time) for most of Europe. 
 
 &nbsp;
 
@@ -378,7 +380,7 @@ You can create a place for ezTime to store the data about the timezone. That way
 
 ### clearCache
 
-`void ezTime.clearCache(bool delete_section = false);`
+`void time.clearCache(bool delete_section = false);`
 
 
 ## Getting date and time
@@ -477,10 +479,19 @@ uint16_t yearISO(TIME);
 ```
 
 ```
-bool yourTZ.secondChanged();
-bool yourTZ.minuteChanged();
+bool time.secondChanged();
+bool time.minuteChanged();
 ```
 
+## Events
+
+`uint8_t setEvent(void (*function)(), TIME)`
+
+`uint8_t setEvent(void (*function)(), const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr)`
+
+`void time.deleteEvent(uint8_t event_handle)`
+
+`void time.deleteEvent(void (*function)())`
 
 ## Setting date and time manually
 
@@ -492,15 +503,15 @@ bool yourTZ.minuteChanged();
 
 `void yourTZ.setTime(const uint8_t hr, const uint8_t min, const uint8_t sec,`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`const uint8_t day, const uint8_t mnth, uint16_t yr)`
 
-`setTime` pretty much does what it says on the package: it sets the time to the time specified, aither as separate elements or as a time_t value in seconds since Jan 1st 1970. If you have another source of time  - say, a GPS receiver - you can use `setTime` to set the time in the UTC timezone. Or you can set the local time in any other timezone you have set up and ezTime will set it's internal offset to the corresponding time in UTC so all timezones stay at the correct time.
+`setTime` pretty much does what it says on the package: it sets the time to the time specified, aither as separate elements or as a time_t value in seconds since Jan 1st 1970. If you have another source of time  &mdash; say, a GPS receiver &mdash; you can use `setTime` to set the time in the UTC timezone. Or you can set the local time in any other timezone you have set up and ezTime will set it's internal offset to the corresponding time in UTC so all timezones stay at the correct time.
 
 It's important to realise however that NTP updates will still become due and when they do time will be set to the time returned by the NTP server. If you do not want that, you can turn off NTP updates with `eztime.setInterval()`. If you do not use NTP updates at all and do not use the network lookups for timezone information either, you can compile ezTime with no network support by commenting out `#define EZTIME_NETWORK_ENABLE` in the `ezTime.h` file, creating a smaller library.
 
 ## Working with time values
 
-### ezTime.breakTime
+### time.breakTime
 
-`void ezTime.breakTime(time_t time, tmElements_t &tm)`
+`void time.breakTime(time_t time, tmElements_t &tm)`
 
 If you create a `tmElements_t` structure and pass it to `breakTime`, it will be filled with the various numeric elements of the time value specified. tmElements_t looks as follows:
 
@@ -520,7 +531,7 @@ Meaning this code would print the hour:
 
 ```
 tmElements_t tm;
-ezTime.breakTime(UTC.now(), tm);
+time.breakTime(UTC.now(), tm);
 Serial.print(tm.Hour);
 ```
 
@@ -528,13 +539,13 @@ But `Serial.println(UTC.hour())` also works and is much simpler. `breakTime` is 
 
 &nbsp;
 
-### ezTime.makeTime
+### time.makeTime
 
-`time_t ezTime.makeTime(tmElements_t &tm);`
+`time_t time.makeTime(tmElements_t &tm);`
 
-This does the opposite of `ezTime.breakTime`: it takes a tmElements_t structure and turns it into a time_t value in seconds since Jan 1st 1970.
+This does the opposite of `time.breakTime`: it takes a tmElements_t structure and turns it into a time_t value in seconds since Jan 1st 1970.
 
-`time_t ezTime.makeTime(uint8_t hour, uint8_t minute, uint8_t second,`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`uint8_t day, uint8_t month, int16_t year);`
+`time_t time.makeTime(uint8_t hour, uint8_t minute, uint8_t second,`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`uint8_t day, uint8_t month, int16_t year);`
 
 This version takes the various numeric elements as arguments. Note that you can pass the year both as years since 1970 and as full four digit years. 
 
@@ -542,12 +553,12 @@ This version takes the various numeric elements as arguments. Note that you can 
 
 ### makeOrdinalTime
 
-`time_t ezTime.makeOrdinalTime(uint8_t hour, uint8_t minute, uint8_t second,`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`uint8_t ordinal, uint8_t wday, uint8_t month, int16_t year);`
+`time_t time.makeOrdinalTime(uint8_t hour, uint8_t minute, uint8_t second,`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`uint8_t ordinal, uint8_t wday, uint8_t month, int16_t year);`
 
 With `makeOrdinalTime` you can get the `time_t` value for a date written as "the second Tuesday in March". The `ordinal` value is 1 for first, 2 for second, 3 for third, 4 for fourth and either 5 or 0 for the last of that weekday in the month. `wday` is weekdays starting with Sunday as 1. You can use the names of ordinals, months and weekdays in all caps as they are compiler defines. So the following would find the `time_t` value for midnight at the start of the first Thursday of the year in variable `year`.
 
 ```
-ezTime.makeOrdinalTime(0, 0, 0, FIRST, THURSDAY, JANUARY, year)
+time.makeOrdinalTime(0, 0, 0, FIRST, THURSDAY, JANUARY, year)
 ```
 
 > *This is actually a fragment of ezTime's own code, as it can print ISO week numbers and the first ISO week in a year is defined as the week that has the first Thursday in it.*
@@ -556,7 +567,7 @@ ezTime.makeOrdinalTime(0, 0, 0, FIRST, THURSDAY, JANUARY, year)
 
 ### compileTime
 
-`time_t ezTime.compileTime(String compile_date = __DATE__, String compile_time = __TIME__);`
+`time_t time.compileTime(String compile_date = __DATE__, String compile_time = __TIME__);`
 
 &nbsp;
 
@@ -581,9 +592,9 @@ In this second form you have to supply all arguments, and it will fill your `tzn
 
 ## Errors and debug information
 
-### ezTime.debugLevel
+### time.debugLevel
 
-`void ezTime.debugLevel(ezDebugLevel_t level);`
+`void time.debugLevel(ezDebugLevel_t level);`
 
 Sets the level of detail at which ezTime outputs messages on the serial port. Can be set to one of:
 
@@ -598,19 +609,19 @@ Sets the level of detail at which ezTime outputs messages on the serial port. Ca
 
 &nbsp;
 
-### ezTime.error
+### time.error
 
-`ezError_t ezTime.error();`
+`ezError_t time.error();`
 
-A number of functions in ezTime are booleans, meaning they return `true` or `false` as their return value, where `false` means some error ocurred. `ezTime.error` will return an `ezError_t` enumeration, something like `NO_NETWORK` (obvious) or `LOCKED_TO_UTC` (when you try to load some new timezone info to the UTC object). You can test for these specific errors and this document will mention which errors night happen in what functions.
+A number of functions in ezTime are booleans, meaning they return `true` or `false` as their return value, where `false` means some error ocurred. `time.error` will return an `ezError_t` enumeration, something like `NO_NETWORK` (obvious) or `LOCKED_TO_UTC` (when you try to load some new timezone info to the UTC object). You can test for these specific errors and this document will mention which errors might happen in what functions.
 
 When you call `error()`, it will also reset the error, so you can clear the last error stored.
 
 &nbsp;
 
-### ezTime.errorString
+### time.errorString
 
-`String ezTime.errorString(ezError_t err = LAST_ERROR);`
+`String time.errorString(ezError_t err = LAST_ERROR);`
 
 This will give you a string representation of the error specified. The pseudo-error `LAST_ERROR`, which is the default, will give you the textual representation of the last error. This will not reset the last error stored.
 

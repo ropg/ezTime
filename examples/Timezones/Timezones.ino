@@ -9,7 +9,7 @@ void setup() {
 	// Uncomment the line below to see what it does behind the scenes
 	// ezTime.debugLevel(INFO);
 	
-	ezTime.waitForSync();
+	time.waitForSync();
 
 	Serial.println();
 	Serial.println("UTC:             " + UTC.dateTime());
