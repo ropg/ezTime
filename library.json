@@ -1,7 +1,7 @@
 {
   "name": "ezTime",
-  "description": "ezTime - pronounced "Easy Time" - is a very easy to use Arduino time and date library that provides NTP network time lookups, extensive timezone support, formatted time and date strings, user events, millisecond precision and more.",
-  "keywords": "time ntp ",
+  "description": "ezTime - pronounced 'Easy Time' - is a very easy to use Arduino time and date library that provides NTP network time lookups, extensive timezone support, formatted time and date strings, user events, millisecond precision and more.",
+  "keywords": "time date ntp timezone events milliseconds",
   "authors": {
     "name": "Rop Gonggrijp",
     "url": "https://github.com/ropg"
