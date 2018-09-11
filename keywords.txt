@@ -10,7 +10,7 @@ events	KEYWORD2
 deleteEvent	KEYWORD2
 breakTime	KEYWORD2
 makeTime	KEYWORD2
-makeUmpteenthTime	KEYWORD2
+makeOrdinalTime	KEYWORD2
 compileTime	KEYWORD2
 monthString	KEYWORD2
 dayString	KEYWORD2

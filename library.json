@@ -11,7 +11,7 @@
     "type": "git",
     "url": "https://github.com/ropg/ezTime"
   },
-  "version": "0.7.1",
+  "version": "0.7.2",
   "framework": "arduino",
   "platforms": "*"
   "build": {

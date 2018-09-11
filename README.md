@@ -6,21 +6,29 @@
 
 <img src ="images/moving-clock.gif" />
 
+&nbsp;
+
+
+| **Major renaming/restructuring still taking place. (The "time" object conflicts on some platforms.) <br> Please test with it but do not use it in for serious things until a few days from now.** |
+|----|
+
+&nbsp;
+
 ## A brief history of ezTime
 
-I was working on [M5ez](https://github.com/ropg/M5ez), an interface library to easily make cool-looking programs for the "M5Stack" ESP32 hardware. The status bar of that needed to display the time. That was all, I swear. I figured I would use [Time](https://github.com/PaulStoffregen/Time), Paul Stoffregen's library to do time things on Arduino. Then I needed to sync that to an NTP server, so I figured I would use [NTPclient](https://github.com/arduino-libraries/NTPClient), one of the existing NTP client libraries. And then I wanted it to show the local time, so I would need some way for the user to set an offset between UTC and local time. 
+I was working on [M5ez](https://github.com/ropg/M5ez), an interface library to easily make cool-looking programs for the "[M5Stack](http://m5stack.com/)" ESP32 hardware. The status bar of M5ez needed to display the time. That was all, I swear. I figured I would use [Time](https://github.com/PaulStoffregen/Time), Michael Margolis' and Paul Stoffregen's library to do time things on Arduino. Then I needed to sync that to an NTP server, so I figured I would use [NTPclient](https://github.com/arduino-libraries/NTPClient), one of the existing NTP client libraries. And then I wanted it to show the local time, so I would need some way for the user to set an offset between UTC and local time. 
 
 So far, so good.
 
-Then I remembered how annoyed I always am when daylight savings time comes or goes, as I have to manually set some of my clocks such as the microwave oven, the clock in the car dashboard, etc etc. My clock would need to know about timezone rules. So I could get Jack Christensen's [Timezone library](https://github.com/JChristensen/Timezone). But it needs the timezone's rules, like "DST goes into effect on the last Sunday in March at 02:00 local time" told to it. I figured I would simply get this data from the internet and parse it.
+Then I remembered how annoyed I always am when daylight savings time comes or goes, as I have to manually set some of my clocks such as the microwave oven, the clock in the car dashboard, etc etc. It's 2018, my clock would need to know about timezone rules. So I could get Jack Christensen's [Timezone library](https://github.com/JChristensen/Timezone). But it needs the timezone's rules, like *"DST goes into effect on the last Sunday in March at 02:00 local time"* told to it. I figured I would simply get this data from the internet and parse it.
 
-And then I wanted 12 or 24 hour time displayed, and thought about various formats for date and time. Wouldn't it be nice to have some function to print formatted time like many programming languages offer them?
+Then I wanted 12 or 24 hour time displayed, and thought about various formats for date and time. Wouldn't it be nice to have some function to print formatted time like many programming languages offer them?
 
 Overlooking the battlefield after implementing some part of this, it seemed like there had to be a better way. Especially, some way in which all this work would benefit more people. This is how ezTime &mdash; the project that was only going to take a few days &mdash; came to be. 
 
 ## ezTime is ...
 
-**self-contained**: It only depends on other libraries to get online, but then it doesn't need other libraries for NTP and timezone data lookups.
+**self-contained**: It only depends on other libraries to get online, but then it doesn't need other libraries for NTP and timezone data lookups. (And even networking can be disabled completely if you have another source for time.)
 
 **precise**: Unlike other libraries, ezTime does not throw away or mangle the fractional second information from the NTP server. An NTP request to pool.ntp.org only takes 40ms round-trip on home DSL these days, so adding sub-second precision to a time library makes sense. ezTime reads the fractional seconds and tries to account for network latency to give you precise time.
 
@@ -28,7 +36,7 @@ Overlooking the battlefield after implementing some part of this, it seemed like
 
 **eventful**: You can set events to have ezTime execute your own functions at a given time, and delete the events again if you change your mind.
 
-**robust**: It doesn't fail if the timezone api goes away: it can use cached data, which ezTime can store in EEPROM (AVR Arduinos) or NVS (ESP32 through Preferences library). 
+**robust**: It doesn't fail if the timezone api goes away: it can use cached data, which ezTime can store in EEPROM (AVR Arduinos) or NVS (e.g. ESP32 through Preferences library). 
 
 **informative**: No need to guess while you're working on something, ezTime can print messages to the serial port at your desired level of detail, telling you about the timezone's daylight savings info it receives or when it gets an NTP update and by how much your internal clock was off, for instance.
 
