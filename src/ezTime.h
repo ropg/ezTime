@@ -15,7 +15,7 @@
 // #define EZTIME_ETHERNET
 
 // Uncomment one of the below to only put only messages up to a certain level in the compiled code
-// (You still need to turn them on with debugLevel(someLevel) to see them)
+// (You still need to turn them on with setDebug(someLevel) to see them)
 // #define EZTIME_MAX_DEBUGLEVEL_NONE
 // #define EZTIME_MAX_DEBUGLEVEL_ERROR
 // #define EZTIME_MAX_DEBUGLEVEL_INFO
@@ -167,7 +167,6 @@ typedef struct {
 void breakTime(time_t time, tmElements_t &tm);
 time_t compileTime(String compile_date = __DATE__, String compile_time = __TIME__);
 String dayString(uint8_t day);
-void debugLevel(ezDebugLevel_t level);
 void deleteEvent(uint8_t event_handle);
 void deleteEvent(void (*function)());
 ezError_t error(bool reset = false);
@@ -179,6 +178,8 @@ time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8
 bool minuteChanged();
 String monthString(uint8_t month);
 bool secondChanged();
+void setDebug(ezDebugLevel_t level);
+void setDebug(ezDebugLevel_t level, Print &device);
 timeStatus_t timeStatus();
 String urlEncode(String str);
 String zeropad(uint32_t number, uint8_t length);	

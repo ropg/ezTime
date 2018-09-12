@@ -33,26 +33,26 @@
 	#define	debug(args...) 		""
 	#define	debugln(args...) 	""
 #elif defined(EZTIME_MAX_DEBUGLEVEL_ERROR)
-	#define	err(args...) 		if (_debug_level >= ERROR) Serial.print(args)
-	#define	errln(args...) 		if (_debug_level >= ERROR) Serial.println(args)
+	#define	err(args...) 		if (_debug_level >= ERROR) _debug_device->print(args)
+	#define	errln(args...) 		if (_debug_level >= ERROR) _debug_device->println(args)
 	#define	info(args...) 		""
 	#define	infoln(args...) 	""
 	#define	debug(args...) 		""
 	#define	debugln(args...) 	""
 #elif defined(EZTIME_MAX_DEBUGLEVEL_INFO)
-	#define	err(args...) 		if (_debug_level >= ERROR) Serial.print(args)
-	#define	errln(args...) 		if (_debug_level >= ERROR) Serial.println(args)
-	#define	info(args...) 		if (_debug_level >= INFO) Serial.print(args)
-	#define	infoln(args...) 	if (_debug_level >= INFO) Serial.println(args)
+	#define	err(args...) 		if (_debug_level >= ERROR) _debug_device->print(args)
+	#define	errln(args...) 		if (_debug_level >= ERROR) _debug_device->println(args)
+	#define	info(args...) 		if (_debug_level >= INFO) _debug_device->print(args)
+	#define	infoln(args...) 	if (_debug_level >= INFO) _debug_device->println(args)
 	#define	debug(args...) 		""
 	#define	debugln(args...) 	""
 #else		// nothing specified compiles everything in.
-	#define	err(args...) 		if (_debug_level >= ERROR) Serial.print(args)
-	#define	errln(args...) 		if (_debug_level >= ERROR) Serial.println(args)
-	#define	info(args...) 		if (_debug_level >= INFO) Serial.print(args)
-	#define	infoln(args...) 	if (_debug_level >= INFO) Serial.println(args)
-	#define	debug(args...) 		if (_debug_level >= DEBUG) Serial.print(args)
-	#define	debugln(args...) 	if (_debug_level >= DEBUG) Serial.println(args)
+	#define	err(args...) 		if (_debug_level >= ERROR) _debug_device->print(args)
+	#define	errln(args...) 		if (_debug_level >= ERROR) _debug_device->println(args)
+	#define	info(args...) 		if (_debug_level >= INFO) _debug_device->print(args)
+	#define	infoln(args...) 	if (_debug_level >= INFO) _debug_device->println(args)
+	#define	debug(args...) 		if (_debug_level >= DEBUG) _debug_device->print(args)
+	#define	debugln(args...) 	if (_debug_level >= DEBUG) _debug_device->println(args)
 #endif
 
 
@@ -63,6 +63,7 @@ namespace {
 
 	ezError_t _last_error = NO_ERROR;
 	ezDebugLevel_t _debug_level = NONE;
+	Print *_debug_device = (Print *)&Serial;
 	ezEvent_t _events[MAX_EVENTS];
 	time_t _last_sync_time = 0;
 	time_t _last_read_t = 0;
@@ -134,8 +135,13 @@ ezError_t error(bool reset /* = false */) {
 	return tmp;
 }
 
-void debugLevel(ezDebugLevel_t level) { 
+void setDebug(ezDebugLevel_t level) {
+	setDebug(level, *_debug_device);
+}
+
+void setDebug(ezDebugLevel_t level, Print &device) { 
 	_debug_level = level;
+	_debug_device = &device;
 	info(F("\r\nezTime debug level set to "));
 	infoln(debugLevelString(level));
 }

@@ -131,7 +131,7 @@ Saturday, 25-Aug-18 14:32:53.303 UTC
 ```
 [...]
 	setInterval(60);
-	setDebugLevel(INFO);
+	setDebug(INFO);
 }
 
 void loop() {
@@ -233,7 +233,7 @@ in File -> Examples you will now see an ezTime heading down under "Examples from
          * [<em>urlEncode</em>](#urlencode)
          * [<em>zeropad</em>](#zeropad)
       * [Errors and debug information](#errors-and-debug-information)
-         * [<em>debugLevel</em>](#debuglevel)
+         * [<em>setDebug</em>](#setdebug)
          * [<em>error</em>](#error)
          * [<em>errorString</em>](#errorstring)
       * [Compatibility with Arduino Time library](#compatibility-with-arduino-time-library)
@@ -750,13 +750,13 @@ Pads `number` with zeroes to the left until the resulting string is `length` pla
 
 ## Errors and debug information
 
-### *debugLevel*
+### *setDebug*
 
-`void debugLevel(ezDebugLevel_t level);`
+`void setDebug(ezDebugLevel_t level)`<br>`void setDebug(ezDebugLevel_t level, Print &device)`
 
-Sets the level of detail at which ezTime outputs messages on the serial port. Can be set to one of:
+`level` sets the level of detail at which ezTime outputs messages on the serial port. Can be set to one of:
 
-| debugLevel  | effect  |
+| level  | effect  |
 |---|---|
 | `NONE` | ezTime does not output anything on the serial port |
 | `ERROR` | ezTime will show when errors occur. Note that these may be transient errors that ezTime recovers from, such as NTP timeouts. |
@@ -764,6 +764,11 @@ Sets the level of detail at which ezTime outputs messages on the serial port. Ca
 | `DEBUG`  | Detailed debugging information unlikely to be of much use unless you are trying to get to the bottom of certain internal behaviour of ezTime.  |
 
 *Note:* you can specify which level of debug information would be compiled into the library. This is especially significant for AVR Arduino users that need to limit the flash and RAM footprint of ezTtime. See the "Smaller footprint, AVR Arduinos" chapter further down.
+`device` is optional and can specify a device to receive the debug messages. This defaults to the Hardwareserial object names `Serial` but can be any device that has inherited from the `Print` class. Don't worry if you don't understand that: it means you can specify not only serial ports, but also a handle to a file you have opened on the SD card as well as a lot of LCD screen devices. For instance, on my M5Stack device I can (after `#include <M5Stack.h>` and `m5.begin()`) do: `setDebug(INFO, m5.lcd)`
+
+You cannot send debug information to multiple devices.
+
+![](images/M5Stack-debug.jpg)
 
 &nbsp;
 
@@ -902,7 +907,7 @@ ezTime 0.7.2 worked, eventually. But I didn't like this one. Getting online is d
 ```
 
 * Test sketch complained about WiFi firmware / driver mismatch. Couldn't get the firmware update tool to work, but WiFi worked anyway.
-* The WiFi object does not have the `isConnected` method so I wrote some detection for ezTime to skip the NO_NETWORK checks. This means that if you have debugLevel at ERROR or higher, waitForSync will throw some NTP TIMEOUT errors (and then continue just fine after wifi is online). 
+* The WiFi object does not have the `isConnected` method so I wrote some detection for ezTime to skip the NO_NETWORK checks. This means that if you have debug level at ERROR or higher, waitForSync will throw some NTP TIMEOUT errors (and then continue just fine after wifi is online). 
 * It doesn't have `EEPROM.h` or `Preferences.h` but some proprietary `FlashStorage.h`. So no cache for the moment. (Turn off both cache defines at the beginning of `ezTime.h`. I'll write it if the third person wants it.
 
 &nbsp;

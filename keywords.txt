@@ -1,6 +1,7 @@
+ezTime	KEYWORD2
 error	KEYWORD2
 errorString	KEYWORD2
-debugLevel	KEYWORD2
+setDebug	KEYWORD2
 timeStatus	KEYWORD2
 now	KEYWORD2
 events	KEYWORD2

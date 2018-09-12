@@ -8,7 +8,7 @@ void setup() {
 	WiFi.begin("your-ssid", "your-password");
 
 	// Uncomment the line below to see what it does behind the scenes
-	// ezTime.debugLevel(INFO);
+	// setDebug(INFO);
 	
 	waitForSync();
 
