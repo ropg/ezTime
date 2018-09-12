@@ -714,6 +714,8 @@ makeOrdinalTime(0, 0, 0, FIRST, THURSDAY, JANUARY, year)
 
 `time_t compileTime(String compile_date = __DATE__, String compile_time = __TIME__);`
 
+Returns the time you compiled your sketch. You can check out the "NoNetwork" example with this library to see it in use: it makes your Arduino pretend to know what time it is.
+
 &nbsp;
 
 ### *tzTime*
@@ -764,11 +766,11 @@ Pads `number` with zeroes to the left until the resulting string is `length` pla
 | `DEBUG`  | Detailed debugging information unlikely to be of much use unless you are trying to get to the bottom of certain internal behaviour of ezTime.  |
 
 *Note:* you can specify which level of debug information would be compiled into the library. This is especially significant for AVR Arduino users that need to limit the flash and RAM footprint of ezTtime. See the "Smaller footprint, AVR Arduinos" chapter further down.
-`device` is optional and can specify a device to receive the debug messages. This defaults to the Hardwareserial object names `Serial` but can be any device that has inherited from the `Print` class. Don't worry if you don't understand that: it means you can specify not only serial ports, but also a handle to a file you have opened on the SD card as well as a lot of LCD screen devices. For instance, on my M5Stack device I can (after `#include <M5Stack.h>` and `m5.begin()`) do: `setDebug(INFO, m5.lcd)`
-
-You cannot send debug information to multiple devices.
+`device` is optional and can specify a device to receive the debug messages. This defaults to the Hardwareserial object names `Serial` but can be any device that has inherited from the `Print` class. Don't worry if you don't understand that: it means you can specify not only serial ports, but also a handle to a file you have opened on the SD card as well as a lot of LCD screen devices. For instance, on my M5Stack device I can &mdash; after `#include <M5Stack.h>` and `m5.begin()` &mdash; do: `setDebug(INFO, m5.lcd)`
 
 ![](images/M5Stack-debug.jpg)
+
+You cannot send debug information to multiple devices at the same time.
 
 &nbsp;
 
