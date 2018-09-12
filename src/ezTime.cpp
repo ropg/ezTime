@@ -193,6 +193,7 @@ void events() {
 			(tmp)();						// execute the function
 		}
 	}
+	yield();
 }
 
 void deleteEvent(uint8_t event_handle) { 
