@@ -9,18 +9,19 @@
 void setup() {
 
 	Serial.begin(115200);
+	while (!Serial) { ; }		// wait for Serial port to connect. Needed for native USB port only
 	WiFi.begin("your-ssid", "your-password");
 
-	time.waitForSync();
+	waitForSync();
 
 	// Set the event to trigger for the first time
-	UTC.setEvent( itIsTheSecondTuesday, nextSecondTuesday() );
+	setEvent( itIsTheSecondTuesday, nextSecondTuesday() );
 
 }
 
 void loop() {
 
-	time.events();
+	events();
 
 }
 
@@ -29,7 +30,7 @@ void itIsTheSecondTuesday() {
 	Serial.println(UTC.dateTime());
 
 	// The event then sets a new event for the next time
-	UTC.setEvent( itIsTheSecondTuesday, nextSecondTuesday() );
+	setEvent( itIsTheSecondTuesday, nextSecondTuesday() );
 }
 
 time_t nextSecondTuesday() {
@@ -40,7 +41,7 @@ time_t nextSecondTuesday() {
 	
 	while (t <= UTC.now()) {
 		// Try in current month first, if that has passed, loop once more for next month
-		t = time.makeOrdinalTime(12, 0, 0, SECOND, TUESDAY, m, y);
+		t = makeOrdinalTime(12, 0, 0, SECOND, TUESDAY, m, y);
 		m++;
 		if (m == 13) {
 			m = 1;

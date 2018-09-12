@@ -1,6 +1,3 @@
-# ezTime object
-
-time	KEYWORD3
 error	KEYWORD2
 errorString	KEYWORD2
 debugLevel	KEYWORD2
@@ -51,6 +48,7 @@ year	KEYWORD2
 dayOfYear	KEYWORD2
 weekISO	KEYWORD2
 yearISO	KEYWORD2
+militaryTZ	KEYWORD2
 setLocation	KEYWORD2
 setCache	KEYWORD2
 clearCache	KEYWORD2

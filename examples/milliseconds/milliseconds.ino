@@ -4,10 +4,11 @@
 void setup() {
 
 	Serial.begin(115200);
+	while (!Serial) { ; }		// wait for Serial port to connect. Needed for native USB port only
 	WiFi.begin("your-ssid", "your-password");
-
-	time.setInterval(60);
-	time.waitForSync();
+	
+	setInterval(60);
+	waitForSync();
 
 	Serial.println();
 
@@ -26,11 +27,10 @@ void setup() {
 	Serial.println("And ezTime is not making those milliseconds up either.");
 	Serial.println();
 	Serial.println("      ... Stick around as we do an NTP request every minute.");
-	ezTime.debugLevel(INFO);
+	debugLevel(INFO);
 	
 }
 
 void loop() {
-	time.events();
-	delay(1000);
+	events();
 }

@@ -4,12 +4,13 @@
 void setup() {
 
 	Serial.begin(115200);
+	while (!Serial) { ; }		// wait for Serial port to connect. Needed for native USB port only
 	WiFi.begin("your-ssid", "your-password");
 
 	// Uncomment the line below to see what it does behind the scenes
 	// ezTime.debugLevel(INFO);
 	
-	time.waitForSync();
+	waitForSync();
 
 	Serial.println();
 	Serial.println("UTC:             " + UTC.dateTime());
@@ -24,5 +25,5 @@ void setup() {
 }
 
 void loop() {
-
+	events();
 }
