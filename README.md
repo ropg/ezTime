@@ -974,7 +974,7 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
 
 | function | returns | arguments | TZ prefix | network | cache |
 |:---------|:--------|:----------|:----------|:--------|:------| 
-| [**`breakTime`**](#breaktime)] | `void` | `time_t time`, `tmElements_t &tm` | no | no | no 
+| [**`breakTime`**](#breaktime) | `void` | `time_t time`, `tmElements_t &tm` | no | no | no 
 | [**`clearCache`**](#clearcache) | `void` | `bool delete_section = false` | yes | yes | NVS
 | [**`clearCache`**](#clearcache) | `void` | | yes | yes | EEPROM
 | [**`compileTime`**](#compiletime) | `time_t` | `String compile_date = __DATE__`, `String compile_time = __TIME__` | no | no | no 
@@ -982,7 +982,7 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
 | [**`day`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | yes | no 
 | [**`dayOfYear`**](#time-and-date-as-numbers) | `uint16_t` | `TIME` | optional | yes | no 
 | [**`dayShortStr`**](#names-of-days-and-months) | `String` | `uint8_t day` | no | no | no 
-| [**`dayStr`**](#names-of-days-and-months)) | `String` | `uint8_t day` | no | no | no 
+| [**`dayStr`**](#names-of-days-and-months) | `String` | `uint8_t day` | no | no | no 
 | [**`deleteEvent`**](#deleteevent) | `void` | `uint8_t event_handle` | no | no | no 
 | [**`deleteEvent`**](#deleteevent) | `void` | `void (`*function`)(``)` | no | no | no 
 | [**`error`**](#error) | `ezError_t` | `bool reset = false` | no | no | no 
@@ -1002,8 +1002,8 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
 | [**`minute`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | yes | no 
 | [**`minuteChanged`**](#secondchanged-and-minutechanged) | `bool` | | no | no | no 
 | [**`month`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | yes | no 
-| [**`monthShortStr`**](#names-of-days-and-months)) | `String` | `uint8_t month` | no | no | no 
-| [**`monthStr`**](#names-of-days-and-months)) | `String` | `uint8_t month` | no | no | no 
+| [**`monthShortStr`**](#names-of-days-and-months) | `String` | `uint8_t month` | no | no | no 
+| [**`monthStr`**](#names-of-days-and-months) | `String` | `uint8_t month` | no | no | no 
 | [**`ms`**](#time-and-date-as-numbers) | `uint16_t` | `TIME_NOW` or `LAST_READ` | optional | yes | no
 | **function** | **returns** | **arguments** | **TZ prefix** | **network** | **cache** |  
 | [**`now`**](#time-and-date-as-numbers) | `time_t` | | optional | yes | no 
