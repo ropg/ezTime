@@ -943,13 +943,13 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
 
 | function | returns | arguments | TZ prefix | network | cache |
 |:---------|:--------|:----------|:----------|:--------|:------| 
-| [[**`breakTime`**](#breakTime)](#breaktime) | `void` | `time_t time`, `tmElements_t &tm` | no | no | no 
-| [[**`clearCache`**](#clearCache)](#clearcache) | `void` | `bool delete_section = false` | yes | yes | NVS
-| [[**`clearCache`**](#clearCache)](#clearcache) | `void` | | yes | yes | EEPROM
+| [**`breakTime`**](#breaktime)] | `void` | `time_t time`, `tmElements_t &tm` | no | no | no 
+| [**`clearCache`**](#clearcache) | `void` | `bool delete_section = false` | yes | yes | NVS
+| [**`clearCache`**](#clearcache) | `void` | | yes | yes | EEPROM
 | [**`compileTime`**](#compiletime) | `time_t` | `String compile_date = __DATE__`, `String compile_time = __TIME__` | no | no | no 
 | [**`dateTime`**](#datetime) | `String` | `TIME`, `String format = DEFAULT_TIMEFORMAT` | optional | yes | no 
-| [**`day`**](#day) | `uint8_t` | `TIME` | optional | yes | no 
-| [**`dayOfYear`**](#dayofyear) | `uint16_t` | `TIME` | optional | yes | no 
+| [**`day`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | yes | no 
+| [**`dayOfYear`**](#time-and-date-as-numbers) | `uint16_t` | `TIME` | optional | yes | no 
 | [**`dayString`**](#daystring) | `String` | `uint8_t day` | no | no | no 
 | [**`deleteEvent`**](#deleteevent) | `void` | `uint8_t event_handle` | no | no | no 
 | [**`deleteEvent`**](#deleteevent) | `void` | `void (`*function`)(``)` | no | no | no 
@@ -961,20 +961,20 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
 | [**`getPosix`**](#getposix) | `String` | | yes | yes | no 
 | **function** | **returns** | **arguments** | **TZ prefix** | **network** | **cache** |
 | [**`getTimezoneName`**](#gettimezonename) | `String` | `TIME` | optional | yes | no 
-| [**`hour`**](#hour) | `uint8_t` | `TIME` | optional | yes | no 
+| [**`hour`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | yes | no 
 | [**`isDST`**](#isdst) | `bool` | `TIME` | optional | yes | no 
 | [**`makeOrdinalTime`**](#makeordinaltime) | `time_t` | `uint8_t hour`, `uint8_t minute`, `uint8_t second`, `uint8_t ordinal`, `uint8_t wday`, `uint8_t month`, `uint16_t year` | no | no | no 
 | [**`makeTime`**](#maketime) | `time_t` | `tmElements_t &tm` | no | no | no 
 | [**`makeTime`**](#maketime) | `time_t` | `uint8_t hour`, `uint8_t minute`, `uint8_t second`, `uint8_t day`, `uint8_t month`, `uint16_t year` | no | no | no 
 | [**`militaryTZ`**](#militarytz) | `String` | `TIME` | optional | yes | no 
-| [**`minute`**](#minute) | `uint8_t` | `TIME` | optional | yes | no 
+| [**`minute`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | yes | no 
 | [**`minuteChanged`**](#secondchanged-and-minutechanged) | `bool` | | no | no | no 
-| [**`month`**](#month) | `uint8_t` | `TIME` | optional | yes | no 
+| [**`month`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | yes | no 
 | [**`monthString`**](#monthstring) | `String` | `uint8_t month` | no | no | no 
-| [**`ms`**](#ms) | `uint16_t` | `TIME_NOW` or `LAST_READ` | optional | yes | no 
-| [**`now`**](#now) | `time_t` | | optional | yes | no 
+| [**`ms`**](#time-and-date-as-numbers) | `uint16_t` | `TIME_NOW` or `LAST_READ` | optional | yes | no 
+| [**`now`**](#time-and-date-as-numbers) | `time_t` | | optional | yes | no 
 | [**`queryNTP`**](#queryntp) | `bool` | `String server`, `time_t &t`, `unsigned long &measured_at` | no | yes | no 
-| [**`second`**](#second) | `uint8_t` | `TIME` | optional | yes | no 
+| [**`second`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | yes | no 
 | **function** | **returns** | **arguments** | **TZ prefix** | **network** | **cache** |
 | [**`secondChanged`**](#secondchanged-and-minutechanged) | `bool` | | no | no | no 
 | [**`setCache`**](#setcache) | `bool` | `String name`, `String key` | yes | yes | NVS
@@ -997,8 +997,8 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
 | [**`updateNTP`**](#updatentp) | `void` | | no | yes | no 
 | [**`urlEncode`**](#urlencode) | `String` | `String str` | no | no | no 
 | [**`waitForSync`**](#waitforsync) | `bool` | `uint16_t timeout = 0` | no | yes | no 
-| [**`weekISO`**](#weekiso) | `uint8_t` | `TIME` | optional | yes | no 
-| [**`weekday`**](#weekday) | `uint8_t` | `TIME` | optional | yes | no 
-| [**`year`**](#year) | `uint16_t` | `TIME` | optional | yes | no 
-| [**`yearISO`**](#yeariso) | `uint16_t` | `TIME` | optional | yes | no 
+| [**`weekISO`**](#weekiso-and-yeariso) | `uint8_t` | `TIME` | optional | yes | no 
+| [**`weekday`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | yes | no 
+| [**`year`**](#time-and-date-as-numbers) | `uint16_t` | `TIME` | optional | yes | no 
+| [**`yearISO`**](#weekiso-and-yeariso) | `uint16_t` | `TIME` | optional | yes | no 
 | [**`zeropad`**](#zeropad) | `String` | `uint32_t number`, `uint8_t length` | no | no | no 
