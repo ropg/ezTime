@@ -259,7 +259,7 @@ Some functions are not necessarily useful for everyday users of this library, bu
 
 I hate documentation that still makes me reach for for the source code, so this manual supplies the function prototype with each function so you can see what types or arguments each function takes and what type the return value is. I took one shortcut though. A lot of functions allow you to specify a time. In the function prototype this looks like:
 
-`time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL`
+`time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL`
 
 Throughout this manual, we replace these two optional arguments in the function definitions with:
 
@@ -460,11 +460,11 @@ To only get the timezone data from the internet when the cache is empty or outda
 
 ### setCache
 
-`bool tz.setCache(const int16_t address)`
+`bool tz.setCache(int16_t address)`
 
 If your ezTime is compiled with `#define EZTIME_CACHE_EEPROM` (which is the default), you can supply an EEPROM location. A single timezone needs 50 bytes to cache. The data is written in compressed form so that the Olsen and Posix strings fit in 3/4 of the space they would normally take up, and along with it is stored a checksum, a length field and a single byte for the month in which the cache was retrieved, in months after January 2018.
 
-`bool tz.setCache(const String name, const String key)`
+`bool tz.setCache(String name, String key)`
 
 On ESP32 and possibly other platforms, there is an emulation for the EEPROM in flash, bu there is also a nicer mechanism that stores keys and values in flash. You can use this by enabling `#define EZTIME_CACHE_NVS` in `ezTime.h` You can then supply a section name and a key to serve as the cache storage location for a given timezone.
 
@@ -539,7 +539,7 @@ We'll start with one of the most powerful functions of ezTime. With `dateTime` y
 
 So as an example: `UTC.dateTime("l ~t~h~e jS ~o~f F Y, g:i A")` yields date and time in this format: `Saturday the 25th of August 2018, 2:23 PM`.
 
-#&nbsp;
+&nbsp;
 
 ### Built-in date and time formats
 
@@ -617,7 +617,7 @@ Returns the one-letter military code for the timezone. See [here](https://www.ti
 
 `uint8_t [tz.]setEvent(void (*function)(), TIME)`
 
-`uint8_t [tz.]setEvent(void (*function)(), const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr)`
+`uint8_t [tz.]setEvent(void (*function)(), uint8_t hr, uint8_t min, uint8_t sec, uint8_t day, uint8_t mnth, uint16_t yr)`
 
 With ezTime, you can set your own events to run at a specified time. Simply run `setEvent` specifying the name of the function you would like to call (without the brackets) and a time you would like to call it. The first time `events` runs and notices that it is at or after the time you specified it will run the event and delete the event. If you want an event to recur, simply set a new event in the function that gets called. You can have a maximum of 8 events by default (easily changed by changing `MAX_EVENTS` in `ezTime.h`). ezTime uses one event internally to trigger the next NTP update.
 
@@ -646,11 +646,15 @@ Buy you can also call `deleteEvent` with the name of the function (again without
 
 `void [tz.]setTime(time_t t, uint16_t ms = 0)`
 
-`void [tz.]setTime(const uint8_t hr, const uint8_t min, const uint8_t sec,`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`const uint8_t day, const uint8_t mnth, uint16_t yr)`
+`void [tz.]setTime(uint8_t hr, uint8_t min, uint8_t sec,`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`uint8_t day, uint8_t mnth, uint16_t yr)`
 
 `setTime` pretty much does what it says on the package: it sets the time to the time specified, either as separate elements or as a time_t value in seconds since Jan 1st 1970. If you have another source of time  &mdash; say, a GPS receiver &mdash; you can use `setTime` to set the time in the UTC timezone. Or you can set the local time in any other timezone you have set up and ezTime will set it's internal offset to the corresponding time in UTC so all timezones stay at the correct time.
 
 It's important to realise however that NTP updates will still become due and when they do time will be set to the time returned by the NTP server. If you do not want that, you can turn off NTP updates with `ezsetInterval()`. If you do not use NTP updates at all and do not use the network lookups for timezone information either, you can compile ezTime with no network support by commenting out `#define EZTIME_NETWORK_ENABLE` in the `ezTime.h` file, creating a smaller library.
+
+### Alternate sources of time
+
+If your time source is not NTP, the way to update time is to create a user function that gets the time from somewhere and then sets the clock with `setTime` and then schedules the next time it synchronises the clock with `setEvent`. This way you have full flexibility: you can schedule the next update sooner if this update fails, for instance. Remember to turn off NTP updates if you want your new time to stick.
 
 ## Working with time values
 
@@ -698,7 +702,7 @@ This version takes the various numeric elements as arguments. Note that you can 
 
 ### *makeOrdinalTime*
 
-`time_t makeOrdinalTime(uint8_t hour, uint8_t minute, uint8_t second,`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`uint8_t ordinal, uint8_t wday, uint8_t month, int16_t year);`
+`time_t makeOrdinalTime(uint8_t hour, uint8_t minute, uint8_t second,`<br> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`uint8_t ordinal, uint8_t wday, uint8_t month, int16_t year);`
 
 With `makeOrdinalTime` you can get the `time_t` value for a date written as "the second Tuesday in March". The `ordinal` value is 1 for first, 2 for second, 3 for third, 4 for fourth and either 5 or 0 for the last of that weekday in the month. `wday` is weekdays starting with Sunday as 1. You can use the names of ordinals, months and weekdays in all caps as they are compiler defines. So the following would find the `time_t` value for midnight at the start of the first Thursday of the year in variable `year`.
 
@@ -714,7 +718,7 @@ makeOrdinalTime(0, 0, 0, FIRST, THURSDAY, JANUARY, year)
 
 `time_t compileTime(String compile_date = __DATE__, String compile_time = __TIME__);`
 
-Returns the time you compiled your sketch. You can check out the "NoNetwork" example with this library to see it in use: it makes your Arduino pretend to know what time it is.
+You can ignore the arguments above and just say `compileTime()`. Returns the time value for when you compiled your sketch. You can check out the "NoNetwork" example with this library to see it in use: it makes your Arduino pretend to know what time it is.
 
 &nbsp;
 
@@ -766,7 +770,7 @@ Pads `number` with zeroes to the left until the resulting string is `length` pla
 | `DEBUG`  | Detailed debugging information unlikely to be of much use unless you are trying to get to the bottom of certain internal behaviour of ezTime.  |
 
 *Note:* you can specify which level of debug information would be compiled into the library. This is especially significant for AVR Arduino users that need to limit the flash and RAM footprint of ezTtime. See the "Smaller footprint, AVR Arduinos" chapter further down.
-`device` is optional and can specify a device to receive the debug messages. This defaults to the Hardwareserial object names `Serial` but can be any device that has inherited from the `Print` class. Don't worry if you don't understand that: it means you can specify not only serial ports, but also a handle to a file you have opened on the SD card as well as a lot of LCD screen devices. For instance, on my M5Stack device I can &mdash; after `#include <M5Stack.h>` and `m5.begin()` &mdash; do: `setDebug(INFO, m5.lcd)`
+`device` is optional and can specify a device to receive the debug messages. This defaults to the Hardwareserial object named `Serial` but can be any device that has inherited from the `Print` class. Don't worry if you don't understand that: it means you can specify not only serial ports, but also a handle to a file you have opened on the SD card as well as a lot of LCD screen devices. For instance, on my M5Stack device I can &mdash; after `#include <M5Stack.h>` and `m5.begin()` &mdash; do: `setDebug(INFO, m5.lcd)`
 
 ![](images/M5Stack-debug.jpg)
 

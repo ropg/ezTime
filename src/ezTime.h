@@ -164,32 +164,32 @@ typedef struct {
 #define ISO8601_YWD			"X-\\WW-N"
 #define DEFAULT_TIMEFORMAT	COOKIE
 
-void breakTime(time_t time, tmElements_t &tm);
-time_t compileTime(String compile_date = __DATE__, String compile_time = __TIME__);
-String dayString(uint8_t day);
-void deleteEvent(uint8_t event_handle);
+void breakTime(const time_t time, tmElements_t &tm);
+time_t compileTime(const String compile_date = __DATE__, const String compile_time = __TIME__);
+String dayString(const uint8_t day);
+void deleteEvent(const uint8_t event_handle);
 void deleteEvent(void (*function)());
-ezError_t error(bool reset = false);
-String errorString(ezError_t err = LAST_ERROR);
+ezError_t error(const bool reset = false);
+String errorString(const ezError_t err = LAST_ERROR);
 void events();
-time_t makeOrdinalTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t ordinal, uint8_t wday, uint8_t month, uint16_t year);
+time_t makeOrdinalTime(const uint8_t hour, const uint8_t minute, const uint8_t second, uint8_t ordinal, const uint8_t wday, const uint8_t month, uint16_t year);
 time_t makeTime(tmElements_t &tm);
-time_t makeTime(uint8_t hour, uint8_t minute, uint8_t second, uint8_t day, uint8_t month, uint16_t year);
+time_t makeTime(const uint8_t hour, const uint8_t minute, const uint8_t second, const uint8_t day, const uint8_t month, const uint16_t year);
 bool minuteChanged();
-String monthString(uint8_t month);
+String monthString(const uint8_t month);
 bool secondChanged();
-void setDebug(ezDebugLevel_t level);
-void setDebug(ezDebugLevel_t level, Print &device);
+void setDebug(const ezDebugLevel_t level);
+void setDebug(const ezDebugLevel_t level, Print &device);
 timeStatus_t timeStatus();
-String urlEncode(String str);
-String zeropad(uint32_t number, uint8_t length);	
+String urlEncode(const String str);
+String zeropad(const uint32_t number, const uint8_t length);	
 
 #ifdef EZTIME_NETWORK_ENABLE
-	bool queryNTP(String server, time_t &t, unsigned long &measured_at);
-	void setInterval(uint16_t seconds = 0);
-	void setServer(String ntp_server = NTP_SERVER);
+	bool queryNTP(const String server, time_t &t, unsigned long &measured_at);
+	void setInterval(const uint16_t seconds = 0);
+	void setServer(const String ntp_server = NTP_SERVER);
 	void updateNTP();
-	bool waitForSync(uint16_t timeout = 0);
+	bool waitForSync(const uint16_t timeout = 0);
 #endif
 
 
@@ -200,42 +200,42 @@ String zeropad(uint32_t number, uint8_t length);
 class Timezone {
 
 	public:
-		Timezone(bool locked_to_UTC = false);
-		String dateTime(String format = DEFAULT_TIMEFORMAT);
-		String dateTime(time_t t, String format = DEFAULT_TIMEFORMAT);
-		String dateTime(time_t t, ezLocalOrUTC_t local_or_utc, String format = DEFAULT_TIMEFORMAT);
-		uint8_t day(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);			// 1-31
-		uint16_t dayOfYear(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);	// days from start of year, jan 1st = 0
-		int16_t getOffset(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+		Timezone(const bool locked_to_UTC = false);
+		String dateTime(const String format = DEFAULT_TIMEFORMAT);
+		String dateTime(time_t t, const String format = DEFAULT_TIMEFORMAT);
+		String dateTime(time_t t, const ezLocalOrUTC_t local_or_utc, const String format = DEFAULT_TIMEFORMAT);
+		uint8_t day(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);			// 1-31
+		uint16_t dayOfYear(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);	// days from start of year, jan 1st = 0
+		int16_t getOffset(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
 		String getPosix();
-		String getTimezoneName(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-		uint8_t hour(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);			// 0-23
-		bool isDST(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-		String militaryTZ(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-		uint8_t minute(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// 0-59
-		uint8_t month(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// 1-12
+		String getTimezoneName(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+		uint8_t hour(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);			// 0-23
+		bool isDST(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+		String militaryTZ(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+		uint8_t minute(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// 0-59
+		uint8_t month(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// 1-12
 		uint16_t ms(time_t t = TIME_NOW);													// 0-999
 		time_t now();
-		uint8_t second(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// 0-59
+		uint8_t second(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// 0-59
 		void setDefault();
 		uint8_t setEvent(void (*function)(), const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr);
-		uint8_t setEvent(void (*function)(), time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-		bool setPosix(String posix);
+		uint8_t setEvent(void (*function)(), time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+		bool setPosix(const String posix);
 		void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr);
-		void setTime(time_t t, uint16_t ms = 0);
+		void setTime(const time_t t, const uint16_t ms = 0);
 		time_t tzTime(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
 		time_t tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, bool &is_dst, int16_t &offset);		
-		uint8_t weekISO(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// ISO-8601 week number (weeks starting on Monday)
-		uint8_t weekday(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// Day of the week (1-7), Sunday is day 1
-		uint16_t year(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// four digit year
-		uint16_t yearISO(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);	// ISO-8601 year, can differ from actual year, plus or minus one
+		uint8_t weekISO(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// ISO-8601 week number (weeks starting on Monday)
+		uint8_t weekday(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// Day of the week (1-7), Sunday is day 1
+		uint16_t year(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// four digit year
+		uint16_t yearISO(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);	// ISO-8601 year, can differ from actual year, plus or minus one
 	private:
 		String _posix, _olsen;
 		bool _locked_to_UTC;
  		
 	#ifdef EZTIME_NETWORK_ENABLE
 		public:
-			bool setLocation(String location = "");
+			bool setLocation(const String location = "");
 			String getOlsen();
 		#ifdef EZTIME_CACHE_EEPROM
 			public:
@@ -251,7 +251,7 @@ class Timezone {
 		#endif
  		#if defined(EZTIME_CACHE_EEPROM) || defined(EZTIME_CACHE_NVS)
  			public:
-				void clearCache(bool delete_section = false);
+				void clearCache(const bool delete_section = false);
  			private:
  				bool setCache();
   				bool writeCache(String &str);
@@ -267,32 +267,32 @@ extern Timezone *defaultTZ;
 
 
 // These bounce through to same-named methods in defaultTZ 
-String dateTime(String format = DEFAULT_TIMEFORMAT);
-String dateTime(time_t t, String format = DEFAULT_TIMEFORMAT);
-String dateTime(time_t t, ezLocalOrUTC_t local_or_utc, String format = DEFAULT_TIMEFORMAT);
-uint8_t day(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME); 
-uint16_t dayOfYear(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-int16_t getOffset(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-String getTimezoneName(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-uint8_t hour(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-uint8_t hourFormat12(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-bool isAM(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-bool isDST(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-bool isPM(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-String militaryTZ(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-uint8_t minute(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-uint8_t month(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME); 
+String dateTime(const String format = DEFAULT_TIMEFORMAT);
+String dateTime(time_t t, const String format = DEFAULT_TIMEFORMAT);
+String dateTime(time_t t, const ezLocalOrUTC_t local_or_utc, const String format = DEFAULT_TIMEFORMAT);
+uint8_t day(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME); 
+uint16_t dayOfYear(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+int16_t getOffset(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+String getTimezoneName(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+uint8_t hour(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+uint8_t hourFormat12(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+bool isAM(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+bool isDST(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+bool isPM(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+String militaryTZ(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+uint8_t minute(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+uint8_t month(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME); 
 uint16_t ms(time_t t = TIME_NOW);
 time_t now();
-uint8_t second(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+uint8_t second(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
 uint8_t setEvent(void (*function)(), const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr);
-uint8_t setEvent(void (*function)(), time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+uint8_t setEvent(void (*function)(), time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
 void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t month, const uint16_t yr);
 void setTime(time_t t);
-uint8_t weekISO(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-uint8_t weekday(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-uint16_t year(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME); 
-uint16_t yearISO(time_t t = TIME_NOW, ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+uint8_t weekISO(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+uint8_t weekday(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+uint16_t year(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME); 
+uint16_t yearISO(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
 
 
 
