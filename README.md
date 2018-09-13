@@ -561,6 +561,7 @@ if (minuteChanged()) WriteToSomeDisplay(UTC.dateString("H:i"));
 
 These functions will take a numeric argument and convert it to the name of the day or the name of the months. These functions do not tell you the current day or month, they just convert the number '1' to 'Sunday`, `Sun`, `January` or `Jan` respectively. They are here to be compatible with the classic Time library. The [`dateTime`](#datetime) function can provide all sorts of strings and is much more flexible.
 
+&nbsp;
 
 ## Events
 
@@ -851,13 +852,7 @@ line that you see in many sketches. But then ezTime 0.7.2 ran fine using NoNetwo
 
 ![](images/Arduino-Due.jpg)
 
-ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example). If you use the native USB port it also needs the
-
-```
-while (!Serial) { ; }		// wait for serial port to connect. Needed for native USB port only
-```
-
-and you need to change all the `Serial.` to `SerialUSB.` in your sketch.
+ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example). If you use the native USB port it also needs the `while (!Serial) { ; }` and you need to change all the `Serial.` to `SerialUSB.` in your sketch. Note that if you want debugging info you can pass the SerialUSB port as the second argument to `setDebug`.
 
 &nbsp;
 
