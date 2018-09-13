@@ -364,7 +364,7 @@ Provide the offset from UTC in minutes at the indicated time (or now if you do n
 
 &nbsp;
 
-###setLocation
+### setLocation
 
 `boolsetLocation(String location = "")`&nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;**MUST** be prefixed with name of a timezone
 
@@ -498,7 +498,14 @@ There are built-in values to specify some standard date and time formats. For ex
 
 Returns the current time in seconds since midnight Jan 1st 1970 in the timezone specified.
 
-`uint8_t hour(TIME)`<br>`uint8_t minute(TIME)`<br>`uint8_t second(TIME)`<br>`uint16_t ms(TIME)`<br>`uint8_t day(TIME)`<br>`uint8_t weekday(TIME)`<br>`uint8_t month(TIME)`<br>`uint16_t year(TIME);`
+`uint8_t hour(TIME)`<br>
+`uint8_t minute(TIME)`<br>
+`uint8_t second(TIME)`
+<br>`uint16_t ms(TIME)`
+<br>`uint8_t day(TIME)`
+<br>`uint8_t weekday(TIME)`
+<br>`uint8_t month(TIME)`
+<br>`uint16_t year(TIME);`
 
 These functions return the various elements of date or time for right now (no arguments) or for a given time in seconds sinds 1970. `weekday` returns a number starting with 1 for Sunday. 
 
@@ -520,7 +527,7 @@ These functions return the ISO-8601 Year-week notation year and week number. Not
 
 &nbsp;
 
-### *militaryTZ(TIME)*
+### *militaryTZ*
 
 `String militaryTZ(TIME)`&nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;Assumes default timezone if no timezone is prefixed
 
@@ -542,7 +549,28 @@ if (minuteChanged()) WriteToSomeDisplay(UTC.dateString("H:i"));
 
 &nbsp;
 
+### names of days and months
+
+`String dayStr(const uint8_t day)`
+
+`String dayShortStr(const uint8_t day)`
+
+`String MonthStr(const uint8_t month)`
+
+`String MonthShortStr(const uint8_t month)`
+
+These functions will take a numeric argument and convert it to the name of the day or the name of the months. These functions do not tell you the current day or month, they just convert the number '1' to 'Sunday`, `Sun`, `January` or `Jan` respectively. They are here to be compatible with the classic Time library. The [`dateTime`](#datetime) function can provide all sorts of strings and is much more flexible.
+
+
 ## Events
+
+### events
+
+`void events()`
+
+This is what your loop functions should call if they want events executed. This includes user-set events (see below) and the NTP updates that ezTime does periodically. `events()` also calls the Arduino function `yield()`, so you do not need to call that anymore (but once more doesn't hurt).
+
+&nbsp;
 
 ### setEvent
 
@@ -890,6 +918,7 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
          * [isDST](#isdst)
          * [getTimezoneName](#gettimezonename)
          * [getOffset](#getoffset)
+         * [setLocation](#setlocation)
          * [Timezone caching, timezoneapi.io, EEPROM or NVS](#timezone-caching-timezoneapiio-eeprom-or-nvs)
          * [setCache](#setcache)
          * [clearCache](#clearcache)
@@ -901,9 +930,11 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
          * [Built-in date and time formats](#built-in-date-and-time-formats)
          * [Time and date as numbers](#time-and-date-as-numbers)
          * [<em>weekISO and yearISO</em>](#weekiso-and-yeariso)
-         * [<em>militaryTZ(TIME)</em>](#militarytztime)
+         * [<em>militaryTZ</em>](#militarytz)
          * [secondChanged and minuteChanged](#secondchanged-and-minutechanged)
+         * [names of days and months](#names-of-days-and-months)
       * [Events](#events)
+         * [events](#events-1)
          * [setEvent](#setevent)
          * [deleteEvent](#deleteevent)
       * [Setting date and time manually](#setting-date-and-time-manually)
@@ -950,16 +981,17 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
 | [**`dateTime`**](#datetime) | `String` | `TIME`, `String format = DEFAULT_TIMEFORMAT` | optional | yes | no 
 | [**`day`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | yes | no 
 | [**`dayOfYear`**](#time-and-date-as-numbers) | `uint16_t` | `TIME` | optional | yes | no 
-| [**`dayString`**](#daystring) | `String` | `uint8_t day` | no | no | no 
+| [**`dayShortStr`**](#names-of-days-and-months) | `String` | `uint8_t day` | no | no | no 
+| [**`dayStr`**](#names-of-days-and-months)) | `String` | `uint8_t day` | no | no | no 
 | [**`deleteEvent`**](#deleteevent) | `void` | `uint8_t event_handle` | no | no | no 
 | [**`deleteEvent`**](#deleteevent) | `void` | `void (`*function`)(``)` | no | no | no 
 | [**`error`**](#error) | `ezError_t` | `bool reset = false` | no | no | no 
 | [**`errorString`**](#errorstring) | `String` | `ezError_t err = LAST_ERROR` | no | no | no 
 | [**`events`**](#events) | `void` | | no | no | no 
-| [**`getOffset`**](#getoffset) | `int16_t` | `TIME` | optional | yes | no 
+| [**`getOffset`**](#getoffset) | `int16_t` | `TIME` | optional | yes | no
+| **function** | **returns** | **arguments** | **TZ prefix** | **network** | **cache** | 
 | [**`getOlsen`**](#getolsen) | `String` | | optional | yes | yes |
 | [**`getPosix`**](#getposix) | `String` | | yes | yes | no 
-| **function** | **returns** | **arguments** | **TZ prefix** | **network** | **cache** |
 | [**`getTimezoneName`**](#gettimezonename) | `String` | `TIME` | optional | yes | no 
 | [**`hour`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | yes | no 
 | [**`isDST`**](#isdst) | `bool` | `TIME` | optional | yes | no 
@@ -970,12 +1002,13 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
 | [**`minute`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | yes | no 
 | [**`minuteChanged`**](#secondchanged-and-minutechanged) | `bool` | | no | no | no 
 | [**`month`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | yes | no 
-| [**`monthString`**](#monthstring) | `String` | `uint8_t month` | no | no | no 
-| [**`ms`**](#time-and-date-as-numbers) | `uint16_t` | `TIME_NOW` or `LAST_READ` | optional | yes | no 
+| [**`monthShortStr`**](#names-of-days-and-months)) | `String` | `uint8_t month` | no | no | no 
+| [**`monthStr`**](#names-of-days-and-months)) | `String` | `uint8_t month` | no | no | no 
+| [**`ms`**](#time-and-date-as-numbers) | `uint16_t` | `TIME_NOW` or `LAST_READ` | optional | yes | no
+| **function** | **returns** | **arguments** | **TZ prefix** | **network** | **cache** |  
 | [**`now`**](#time-and-date-as-numbers) | `time_t` | | optional | yes | no 
 | [**`queryNTP`**](#queryntp) | `bool` | `String server`, `time_t &t`, `unsigned long &measured_at` | no | yes | no 
 | [**`second`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | yes | no 
-| **function** | **returns** | **arguments** | **TZ prefix** | **network** | **cache** |
 | [**`secondChanged`**](#secondchanged-and-minutechanged) | `bool` | | no | no | no 
 | [**`setCache`**](#setcache) | `bool` | `String name`, `String key` | yes | yes | NVS
 | [**`setCache`**](#setcache) | `bool` | `int16_t address` | yes | yes | EEPROM
@@ -984,13 +1017,13 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
 | [**`setDefault`**](#setdefault) | `void` | | yes | yes | no 
 | [**`setEvent`**](#setevent) | `uint8_t` | `void (*function)()`, `TIME` | optional | yes | no 
 | [**`setEvent`**](#setevent) | `uint8_t` | `void (*function)()`, `uint8_t hr`, `uint8_t min`, `uint8_t sec`, `uint8_t day`, `uint8_t mnth`, `uint16_t yr` | optional | yes | no 
-| [**`setInterval`**](#setinterval) | `void` | `uint16_t seconds = 0` |  | yes | no 
+| [**`setInterval`**](#setserver-and-setinterval) | `void` | `uint16_t seconds = 0` |  | yes | no 
 | [**`setLocation`**](#setlocation) | `bool` | `String location = ""` | yes | yes | no 
 | [**`setPosix`**](#setposix) | `bool` | `String posix` | yes | yes | no 
-| [**`setServer`**](#setserver) | `void` | `String ntp_server = NTP_SERVER` | no | yes | no 
+| [**`setServer`**](#setserver-and-setinterval) | `void` | `String ntp_server = NTP_SERVER` | no | yes | no
+| **function** | **returns** | **arguments** | **TZ prefix** | **network** | **cache** |  
 | [**`setTime`**](#settime) | `void` | `time_t t`, `uint16_t ms = 0` | optional | yes | no 
 | [**`setTime`**](#settime) | `void` | `uint8_t hr`, `uint8_t min`, `uint8_t sec`, `uint8_t day`, `uint8_t mnth`, `uint16_t yr` | optional | yes | no 
-| **function** | **returns** | **arguments** | **TZ prefix** | **network** | **cache** |
 | [**`timeStatus`**](#timestatus) | `timeStatus_t` | | no | no | no 
 | [**`tzTime`**](#tztime) | `time_t` | `TIME` | yes | yes | no 
 | [**`tzTime`**](#tztime) | `time_t` | `TIME`, `String &tzname`, `bool &is_dst`, `int16_t &offset` | yes | yes | no 
