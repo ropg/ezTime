@@ -210,7 +210,10 @@ class Timezone {
 		String getPosix();
 		String getTimezoneName(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
 		uint8_t hour(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);			// 0-23
+		uint8_t hourFormat12(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);	// 1-12
+		bool isAM(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
 		bool isDST(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+		bool isPM(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		
 		String militaryTZ(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
 		uint8_t minute(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// 0-59
 		uint8_t month(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);		// 1-12
@@ -293,7 +296,6 @@ uint8_t weekISO(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_T
 uint8_t weekday(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
 uint16_t year(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME); 
 uint16_t yearISO(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-
 
 
 // The following defines all copied from the original Time lib to keep existing code working

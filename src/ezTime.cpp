@@ -148,7 +148,7 @@ void setDebug(const ezDebugLevel_t level, Print &device) {
 
 ////////////////////////
 
-String monthString(const uint8_t month) {
+String monthStr(const uint8_t month) {
 	switch(month) {
 		case 1: return  F("January");
 		case 2: return  F("February");		
@@ -166,7 +166,7 @@ String monthString(const uint8_t month) {
 	return "";
 }
 
-String dayString(const uint8_t day) {
+String dayStr(const uint8_t day) {
 	switch(day) {
 		case 1: return F("Sunday");
 		case 2: return F("Monday");
@@ -178,6 +178,10 @@ String dayString(const uint8_t day) {
 	}
 	return "";
 }
+
+// Original time lib compatibility
+String dayShortStr(const uint8_t day) { return dayStr(day).substring(0,3); }
+String monthShortStr(const uint8_t month) { return monthStr(month).substring(0,3); }
 
 
 timeStatus_t timeStatus() { return _time_status; }
@@ -389,7 +393,7 @@ time_t compileTime(const String compile_date /* = __DATE__ */, const String comp
 	int16_t year = compile_date.substring(7).toInt();
 	String iterate_month;
 	for (uint8_t month = 1; month < 13; month++) {
-		iterate_month = monthString(month);
+		iterate_month = monthStr(month);
 		if ( iterate_month.substring(0,3) == compile_date.substring(0,3) ) {
 			return makeTime(hrs, min, sec, day, month, year);
 		}
@@ -422,7 +426,7 @@ bool minuteChanged() {
 			_last_sync_millis = measured_at;
 			_last_read_ms = ( millis() - measured_at) % 1000;
 			info(F("Received time: "));
-			info(UTC.dateTime(_last_sync_time, F("l, d-M-y H:i:s.v T")));
+			info(UTC.dateTime(t, F("l, d-M-y H:i:s.v T")));
 			if (_time_status != timeNotSet) {
 				info(F(" (internal clock was "));
 				if (!correction) {
@@ -1246,13 +1250,13 @@ String Timezone::dateTime(time_t t, const ezLocalOrUTC_t local_or_utc, const Str
 					out += zeropad(tm.Day, 2);
 					break;
 				case 'D':	// A textual representation of a day, three letters
-					out += dayString(tm.Wday).substring(0,3);
+					out += dayStr(tm.Wday).substring(0,3);
 					break;
 				case 'j':	// Day of the month without leading zeros
 					out += String(tm.Day);
 					break;
 				case 'l':	// (lowercase L) A full textual representation of the day of the week
-					out += dayString(tm.Wday);
+					out += dayStr(tm.Wday);
 					break;
 				case 'N':	// ISO-8601 numeric representation of the day of the week. ( 1 = Monday, 7 = Sunday )
 					tmpint8 = tm.Wday - 1;
@@ -1279,13 +1283,13 @@ String Timezone::dateTime(time_t t, const ezLocalOrUTC_t local_or_utc, const Str
 					out += String(tm.Wday);
 					break;
 				case 'F':	// A full textual representation of a month, such as January or March
-					out += monthString(tm.Month);
+					out += monthStr(tm.Month);
 					break;
 				case 'm':	// Numeric representation of a month, with leading zeros
 					out += zeropad(tm.Month, 2);
 					break;
 				case 'M':	// A short textual representation of a month, three letters
-					out += monthString(tm.Month).substring(0,3);
+					out += monthStr(tm.Month).substring(0,3);
 					break;
 				case 'n':	// Numeric representation of a month, without leading zeros
 					out += String(tm.Month);
@@ -1436,6 +1440,26 @@ uint16_t Timezone::dayOfYear(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t loca
 	return (t - jan_1st) / SECS_PER_DAY;
 }
 
+uint8_t Timezone::hourFormat12(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	t = tzTime(t, local_or_utc);
+	uint8_t h = t / 3600 % 12;
+	if (h) return h;
+	return 12;
+}
+
+bool Timezone::isAM(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	t = tzTime(t, local_or_utc);
+	uint8_t h = t / 3600 % 24;
+	return (t / 3600 % 24 < 12);
+}
+
+bool Timezone::isPM(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+	t = tzTime(t, local_or_utc);
+	uint8_t h = t / 3600 % 24;
+	return (t / 3600 % 24 >= 12);
+}
+
+
 // Now this is where this gets a little obscure. The ISO year can be different from the
 // actual (Gregorian) year. That is: you can be in january and still be in week 53 of past
 // year, _and_ you can be in december and be in week one of the next. The ISO 8601 
@@ -1469,14 +1493,6 @@ Timezone UTC;
 Timezone *defaultTZ = &UTC;
 
 
-
-// Original time lib compatibility
-String dayShortStr(const uint8_t day) { return dayString(day).substring(0,3); }
-String dayStr(const uint8_t day) { return dayString(day); }
-String monthShortStr(const uint8_t month) { return monthString(month).substring(0,3); }
-String monthStr(const uint8_t month) { return monthString(month); }
-
-
 // All bounce-throughs to defaultTZ
 String dateTime(const String format /* = DEFAULT_TIMEFORMAT */) { return (defaultTZ->dateTime(format)); }
 String dateTime(time_t t, const String format /* = DEFAULT_TIMEFORMAT */) { return (defaultTZ->dateTime(t, format)); }
@@ -1486,10 +1502,10 @@ uint16_t dayOfYear(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc 
 int16_t getOffset(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->getOffset(t, local_or_utc)); }
 String getTimezoneName(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->getTimezoneName(t, local_or_utc)); }
 uint8_t hour(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->hour(t, local_or_utc)); }
-uint8_t hourFormat12(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->hour(t, local_or_utc) % 12); }
-bool isAM(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->hour(t, local_or_utc) < 12) ? true : false; }
+uint8_t hourFormat12(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->hourFormat12(t, local_or_utc)); }
+bool isAM(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->isAM(t, local_or_utc)); }
 bool isDST(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->isDST(t, local_or_utc)); }
-bool isPM(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->hour(t, local_or_utc) >= 12) ? true : false; } 
+bool isPM(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->isPM(t, local_or_utc)); }
 String militaryTZ(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->militaryTZ(t, local_or_utc)); }
 uint8_t minute(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->minute(t, local_or_utc)); }
 uint8_t month(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->month(t, local_or_utc)); } 
