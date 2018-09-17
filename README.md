@@ -18,11 +18,11 @@ I was working on [M5ez](https://github.com/ropg/M5ez), an interface library to e
 
 So far, so good.
 
-Then I remembered how annoyed I always am when daylight savings time comes or goes, as I have to manually set some of my clocks such as the microwave oven, the clock in the car dashboard, etc etc. It's 2018, my clock would need to know about timezone rules. So I could get Jack Christensen's [Timezone library](https://github.com/JChristensen/Timezone). But it needs the timezone's rules, like *"DST goes into effect on the last Sunday in March at 02:00 local time"* told to it. I figured I would simply get this data from the internet and parse it.
+Then I remembered how annoyed I always am when daylight savings time comes or goes, as I have to manually set some of my clocks such as the microwave oven, the clock in the car dashboard, etc etc. It's 2018, my clock should know about timezone rules. So I could get Jack Christensen's [Timezone library](https://github.com/JChristensen/Timezone). But it needs the timezone's rules, like *"DST goes into effect on the last Sunday in March at 02:00 local time"* told to it. I figured I would simply get this data from the internet and parse it.
 
-Then I wanted 12 or 24 hour time displayed, and thought about various formats for date and time. Wouldn't it be nice to have some function to print formatted time like many programming languages offer them?
+Then I wanted 12 or 24 hour time displayed, and thought about various formats for date and time. Wouldn't it be nice to have some function to print formatted time like many programming languages offer?
 
-Overlooking the battlefield after implementing some part of this, it seemed like there had to be a better way. Especially, some way in which all this work would benefit more people. This is how ezTime &mdash; the project that was only going to take a few days &mdash; came to be.
+Overlooking the battlefield after implementing some part of this, it seemed like there had to be a better way. Some way in which all this work would benefit more people. This is how ezTime &mdash; the project that was only going to take a few days &mdash; came to be.
 
 ## ezTime is ...
 
@@ -182,7 +182,7 @@ in File -> Examples you will now see an ezTime heading down under "Examples from
 
 ### Semi-internal functions
 
-Some functions are not necessarily useful for everyday users of this library, but might be useful to someone someday. For instance, this library checks with the NTP servers automatically, there should be no need to ever "manually" get an NTP response. But the function to do that is still exposed to the user. Even some functions that have nothing to do with time, like `urlEncode` are there for you to use, simply because they *might* be useful to someone, and the library needed them internally so they come at no extra cost in terms of size. In this manual, the names of these functions are printed in *italics* in their chapter headings, just to make it a easier for you to see which functions are core functionality and which are really not needed in everyday use.
+Some functions are not necessarily useful for everyday users of this library, but might be useful to someone someday. For instance, this library checks with the NTP servers automatically, so there should be no need to ever "manually" get an NTP response. But the function to do that is still exposed to the user. Even some functions that have nothing to do with time, like `urlEncode` are there for you to use, simply because they *might* be useful to someone, and the library needed them internally so they come at no extra cost in terms of size. In this manual, the names of these functions are printed in *italics* in their chapter headings, just to make it a easier for you to see which functions are core functionality and which are really not needed in everyday use.
 
 ### Specifying time
 
@@ -198,7 +198,7 @@ That's because the prior is just a little too long to be repeating a thousand ti
 
 Otherwise, you can specify a `time_t` value, a well-known 32-bit signed integer way of specifying time in seconds elapsed since 00:00 Jan 1st 1970. If you specify a value other than `TIME_NOW` or `LAST_READ`, you can then specify whether you mean in UTC or local time, by following it with a second argument that is either `UTC_TIME` or `LOCAL_TIME`.
 
-For example, if you have set up a timezone called Berlin, `Berlin.isDST(1536314299, UTC_TIME)` tells you whether Daylight Savings Time is in effect on that time, as seconds from 00:00 Jan 1st 1970 UTC, as opposed to that many seconds from that time in Berlin (which would be the default). There will be some examples later on, showing you how to create and process such timestamps. Mostly though, you don't need specify anything at all because you just want something time-related about "right now".
+For example, if you have set up a timezone called Berlin, `Berlin.isDST(1536314299, UTC_TIME)` tells you whether Daylight Savings Time is in effect on that time, as seconds from 00:00 Jan 1st 1970 UTC, as opposed to the same amount of seconds from that time in Berlin (which would be the default). There will be some examples later on, showing you how to create and process such timestamps. Mostly though, you don't need specify anything at all because you just want something time-related about "right now".
 
 > *Time-geek sidenote: ezTime does not have historical information about the daylight savings rules of the past or future, it only applies the rules it has now as if they also applied in the past or future. Check [here](https://www.timeanddate.com/) for historical records for timezones.*
 
@@ -284,7 +284,7 @@ Note that this function is used internally by ezTime, but does not by itself set
 
 ## Timezones
 
-> *If only it was as uncomplicated as this map suggests. Every band is actually made up of countries that all change to their Daylight Saving Time on different dates, and they even change the rules for when that happens frequently.*
+> *If only it was as uncomplicated as this map suggests. Every band is actually made up of countries that all change to their Daylight Saving Time on different dates, and they even frequently change the rules for when that happens.*
 
 ![](images/timezones.gif)
 
@@ -328,7 +328,7 @@ India.setPosix("IST-5:30")
 Serial.println(India.dateTime());
 ```
 
-is enough, because the time in India doesn't go back and forth with the coming and going of Daylight Saving Time (even though the half hour offset to UTC is pretty weird.)
+is enough, because the time in India doesn't go back and forth with the coming and going of Daylight Savings Time (even though the half hour offset to UTC is pretty weird.)
 
 &nbsp;
 
@@ -344,7 +344,7 @@ is enough, because the time in India doesn't go back and forth with the coming a
 
 `bool isDST(TIME);`&nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;Assumes default timezone if no timezone is prefixed
 
-Tells you whether DST is in effect at a given time in this timezone. If you do not provide arguments, it's interpreted as 'right now'. You can also specify a time (in seconds since 1970, we'll get back to that) in the first argument. If you want to know for a time in UTC, you can set the second argument to `false`, otherwise you are assumed to mean in local time.
+Tells you whether DST is in effect at a given time in this timezone. If you do not provide arguments, it's interpreted as 'right now'. You can also specify a time (in seconds since 1970, we'll get back to that) in the first argument. If you want to know a certain time in UTC in within the DST windown in a given timezone you can set the second argument to `false`, otherwise it is assumed you are asking about a time expressed as local time.
 
 &nbsp;
 
@@ -396,7 +396,7 @@ If your ezTime is compiled with `#define EZTIME_CACHE_EEPROM` (which is the defa
 
 `bool setCache(String name, String key)`&nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;**MUST** be prefixed with name of a timezone
 
-On ESP32 and possibly other platforms, there is an emulation for the EEPROM in flash, bu there is also a nicer mechanism that stores keys and values in flash. You can use this by enabling `#define EZTIME_CACHE_NVS` in `ezTime.h` You can then supply a section name and a key to serve as the cache storage location for a given timezone.
+On ESP32 and possibly other platforms, there is an emulation for the EEPROM in flash, but there is also a nicer mechanism that stores keys and values in flash. You can use this by enabling `#define EZTIME_CACHE_NVS` in `ezTime.h` You can then supply a section name and a key to serve as the cache storage location for a given timezone.
 
 &nbsp;
 
@@ -404,7 +404,7 @@ On ESP32 and possibly other platforms, there is an emulation for the EEPROM in f
 
 `void clearCache(bool delete_section = false)`&nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;**MUST** be prefixed with name of a timezone
 
-Clears the cache for a timezone. If you use EEPROM the bytes are overwritten with zeroes, if you use NVS, the key is deleted. If you provide the argument `true` using NVS the entire section is deleted. Do this only if that section does not contain anything else that you want to keep.
+Clears the cache for a timezone. If you use EEPROM, the bytes are overwritten with zeroes, if you use NVS, the key is deleted. If you provide the argument `true` using NVS the entire section is deleted. Do this only if that section does not contain anything else that you want to keep.
 
 &nbsp;
 
@@ -569,7 +569,7 @@ if (minuteChanged()) WriteToSomeDisplay(UTC.dateString("H:i"));
 
 `String MonthShortStr(const uint8_t month)`
 
-These functions will take a numeric argument and convert it to the name of the day or the name of the months. These functions do not tell you the current day or month, they just convert the number '1' to 'Sunday`, `Sun`, `January` or `Jan` respectively. They are here to be compatible with the classic Time library. The [`dateTime`](#datetime) function can provide all sorts of strings and is much more flexible.
+These functions will take a numeric argument and convert it to the name of the day or the name of the months. These functions do not tell you the current day or month, they just convert the number `1` to `Sunday`, `Sun`, `January` or `Jan` respectively. They are here to be compatible with the classic Time library. The [`dateTime`](#datetime) function can provide all sorts of strings and is much more flexible.
 
 &nbsp;
 
@@ -590,7 +590,7 @@ This is what your loop functions should call if they want events executed. This 
 `uint8_t setEvent(void (*function)(), uint8_t hr, uint8_t min, uint8_t sec,`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`uint8_t day, uint8_t mnth, uint16_t yr)`
 
 
-With ezTime, you can set your own events to run at a specified time. Simply run `setEvent` specifying the name of the function you would like to call (without the brackets) and a time you would like to call it. The first time `events` runs and notices that it is at or after the time you specified it will run the event and delete the event. If you want an event to recur, simply set a new event in the function that gets called. You can have a maximum of 8 events by default (easily changed by changing `MAX_EVENTS` in `ezTime.h`). ezTime uses one event internally to trigger the next NTP update.
+With ezTime, you can set your own events to run at a specified time. Simply run `setEvent` specifying the name of the function you would like to call (without the brackets) and a time you would like to call it. The first time `events` runs and notices that it is at or after the time you specified it will run and then delete the event. If you want an event to recur, simply set a new event in the function that gets called. You can have a maximum of 8 events by default (easily changed by changing `MAX_EVENTS` in `ezTime.h`). ezTime uses one event internally to trigger the next NTP update.
 
 `setevent` returns an 8-bit event handle between 1 and MAX_EVENTS which you can store in a variable and use to delete the event with `deleteEvent` should your program need to. Zero is returned and the error `TOO_MANY_EVENTS` set if there are no more free slots for your new event.
 
@@ -619,7 +619,7 @@ Buy you can also call `deleteEvent` with the name of the function (again without
 
 `void setTime(uint8_t hr, uint8_t min, uint8_t sec,`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`uint8_t day, uint8_t mnth, uint16_t yr)`
 
-`setTime` pretty much does what it says on the package: it sets the time to the time specified, either as separate elements or as a time_t value in seconds since Jan 1st 1970. If you have another source of time  &mdash; say, a GPS receiver &mdash; you can use `setTime` to set the time in the UTC timezone. Or you can set the local time in any other timezone you have set up and ezTime will set it's internal offset to the corresponding time in UTC so all timezones stay at the correct time.
+`setTime` pretty much does what it says on the package: it sets the time to the time specified, either as separate elements or as a time_t value in seconds since Jan 1st 1970. If you have another source of time  &mdash; say, a GPS receiver &mdash; you can use `setTime` to set the time in the UTC timezone. Or you can set the local time in any other timezone you have set up and ezTime will set its internal offset to the corresponding time in UTC so all timezones stay at the correct time.
 
 It's important to realise however that NTP updates will still become due and when they do time will be set to the time returned by the NTP server. If you do not want that, you can turn off NTP updates with `setInterval()`. If you do not use NTP updates at all and do not use the network lookups for timezone information either, you can compile ezTime with no network support by commenting out `#define EZTIME_NETWORK_ENABLE` in the `ezTime.h` file, creating a smaller library.
 
@@ -713,7 +713,7 @@ These functions are available for you to use because ezTime needed them internal
 
 `String urlEncode(String str);`
 
-Does what is says on  the package: url-encodes a string.
+Does what it says on  the package: url-encodes a string.
 
 &nbsp;
 
@@ -785,7 +785,7 @@ This library compiles on an Arduino Uno with an Ethernet shield. However, it wil
 
 The NTP timestamps used here run until the 7th of February 2036. NTP itself has 128 bits of time precision, I haven't looked into it much. Didn't have to, because just a little later, on the 19th of January 2038, the time_t 32 bit signed integer overflows. This is 20 years from today, in 2018. The Arduino world, if it still exists around then, will have come together around some solution that probably involves 64-bit time like in many operating systems of 2018. If you use this library in your nuclear generating station (**NOOOOO!**), make sure you're not around when these timers wrap around.
 
-Should you be the one doing maintenance on this is some far-ish future: For ezTime I created another overflowing counter: the cache age for the timezone information is written as a single unsigned byte in months after January 2018, so that could theoretically cause problems in 2039, but I think everything will just roll over and use 2039 as the new anchor date.
+Should you be the one doing maintenance on this in some far-ish future: For ezTime I created another overflowing counter: the cache age for the timezone information is written as a single unsigned byte in months after January 2018, so that could theoretically cause problems in 2039, but I think everything will just roll over and use 2039 as the new anchor date.
 
 &nbsp;
 
