@@ -12,7 +12,7 @@
 
 &nbsp;
 
-> **Newsflash**: *To find the timezone information, ezTime originally used timezoneapi.io, which could be used for free for up to 50 queries a day. They have changed this policy and forced the use of https, both breaking ezTime. As of version 0.7.4, ezTime makes use of its very own online timezone lookup daemon, removing a dependency on some third party that might change their policy just like timezoneapi did. Please see details for [*`setLocation`*](#setlocation) because the interface changed a little. You can now also do GeoIP lookups for automatic local time setting (only in countries which do not span multiple timezones).*
+> **Newsflash**: *To find the timezone information, ezTime originally used timezoneapi.io, which could be used for free for up to 50 queries a day. They have changed this policy and forced the use of https, both breaking ezTime. (For more information see [here](https://github.com/ropg/ezTime/issues/2).) As of version 0.7.4, ezTime makes use of its very own online timezone lookup daemon, removing a dependency on some third party that might change their policy just like timezoneapi did. Please see details for [*`setLocation`*](#setlocation) because the interface changed a little. You can now also do GeoIP lookups for automatic local time setting (only in countries which do not span multiple timezones).*
 
 ## A brief history of ezTime
 
