@@ -42,7 +42,7 @@ Overlooking the battlefield after implementing some part of this, it seemed like
 
 **time-saving**: No more time spent on writing code to print date or time in some nicer way. Print things like "8:20 PM" or "Saturday the 23rd of August 2018" with ease. Prevent display-flicker with `minuteChanged()` and `secondChanged()` functions without storing any values to compare.
 
-**small enough**: Works with all features and full debugging information on an Arduino Uno with an Ethernet Shield, leaving 2/3 of RAM but not too much flash for you to work with. (Even on a good day there isn't that much left if you want to do anything that involves networking.) Various `#define` options let you leave parts of the library out if you want to make it smaller: you can even leave out the networking altogether if you have a different time source.
+**small enough**: Works with all features and full debugging information on an old Arduino Uno with an Ethernet Shield, leaving 2/3 of RAM and even some of the flash for you to work with. Various `#define` options let you leave parts of the library out if you want to make it smaller: you can even leave out the networking altogether if you have a different time source.
 
 **easy to use**: Don't believe it until you see it. Have a look at some of these examples to see how easy it is to use.
 
