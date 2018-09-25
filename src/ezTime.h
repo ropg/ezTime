@@ -5,11 +5,6 @@
 #define _EZTIME_H_
 
 
-// Whether or not to be compatible with Paul Stoffregen's Arduino Time Library.
-// (which makes a lot of functions available in your root namespace, additionally to through the
-// objects created by ezTime.)
-#define ARDUINO_TIMELIB_COMPATIBILITY
-
 // Compiles in NTP updating, timezoned fetching and caching 
 #define EZTIME_NETWORK_ENABLE
 

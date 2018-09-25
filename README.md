@@ -535,6 +535,12 @@ These will tell if it is before or after noon for a given `TIME`, return `true` 
 
 &nbsp;
 
+`uint16_t dayOfYear(TIME)`&nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;Both assume default timezone if no timezone is prefixed
+
+Returns how many days have passed in the year. January 1st returns 0,
+
+&nbsp;
+
 ### *weekISO and yearISO*
 
 `uint8_t weekISO(TIME)`<br>`uint16_t yearISO(TIME)`&nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;Both assume default timezone if no timezone is prefixed
