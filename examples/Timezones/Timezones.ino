@@ -17,10 +17,24 @@ void setup() {
 
 	Timezone myTZ;
 
-	// Anything with a slash in it is interpreted as an official timezone name
+	// Provide official timezone names
 	// https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-	myTZ.setLocation("Pacific/Auckland");
-	Serial.println("Auckland: " + myTZ.dateTime());
+	myTZ.setLocation(F("Pacific/Auckland"));
+	Serial.print(F("New Zealand:     "));
+	Serial.println(myTZ.dateTime());
+
+	// Or country codes for countries that do not span multiple timezones
+	mtTZ.setLocation(F("de"));
+	Serial.print(F("Germany:         "));
+	Serial.println(myTZ.dateTime());	
+
+	// See if local time can be obtained (does not work in countries that span multiple timezones)
+	Serial.print(F("Local (GeoIP):   "));
+	if (myTZ.setLocation()) {
+		Serial.println(myTZ.dateTime());
+	} else {
+		Serial.println(errorString());
+	}
 
 }
 

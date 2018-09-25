@@ -22,6 +22,7 @@
 		#include <EthernetUdp.h>
 	#else
 		#include <WiFi.h>
+		#include <WiFiUdp.h>
 	#endif
 #endif
 
@@ -62,6 +63,7 @@ const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31}; // API starts m
 namespace {
 
 	ezError_t _last_error = NO_ERROR;
+	String _server_error = "";
 	ezDebugLevel_t _debug_level = NONE;
 	Print *_debug_device = (Print *)&Serial;
 	ezEvent_t _events[MAX_EVENTS];
@@ -123,6 +125,7 @@ String errorString(const ezError_t err /* = LAST_ERROR */) {
 		case NO_CACHE_SET: return			F("No cache set");
 		case CACHE_TOO_SMALL: return		F("Cache too small");
 		case TOO_MANY_EVENTS: return		F("Too many events");
+		case SERVER_ERROR: return			_server_error; 
 		default: return						F("Unkown error");
 	}
 }
@@ -458,16 +461,14 @@ bool minuteChanged() {
 		info(F(" ... "));
 
 		#ifndef EZTIME_ETHERNET
-			#ifndef ARDUINO_SAMD_MKR1000
-				if (!WiFi.isConnected()) { error(NO_NETWORK); return false; }
-			#endif
+			if (WiFi.status() != WL_CONNECTED) { error(NO_NETWORK); return false; }
 			WiFiUDP udp;
 		#else
 			EthernetUDP udp;
 		#endif
 	
 		udp.flush();
-		udp.begin(NTP_LOCAL_TIME_PORT);
+		udp.begin(NTP_LOCAL_PORT);
 	
 		// Send NTP packet
 		byte buffer[NTP_PACKET_SIZE];
@@ -526,11 +527,12 @@ bool minuteChanged() {
 
 		unsigned long start = millis();
 		
-		#if !defined(EZTIME_ETHERNET) && !defined(ARDUINO_SAMD_MKR1000)
-			if (!WiFi.isConnected()) {
+		#if !defined(EZTIME_ETHERNET)
+			if (WiFi.status() != WL_CONNECTED) {
 				info(F("Waiting for WiFi ... "));
-				while (!WiFi.isConnected()) {
+				while (WiFi.status() != WL_CONNECTED) {
 					if ( timeout && (millis() - start) / 1000 > timeout ) { error(TIMEOUT); return false;};
+					events();
 					delay(25);
 				}
 				infoln(F("connected"));
@@ -797,91 +799,64 @@ String Timezone::getPosix() { return _posix; }
 
 #ifdef EZTIME_NETWORK_ENABLE
 
-	bool Timezone::setLocation(const String location /* = "" */) {
+	bool Timezone::setLocation(const String location /* = "GeoIP" */) {
 	
 		info(F("Timezone lookup for: "));
 		infoln(location);
 		if (_locked_to_UTC) { error(LOCKED_TO_UTC); return false; }
 		
-		#if !defined(EZTIME_ETHERNET) && !defined(ARDUINO_SAMD_MKR1000)
-			if (!WiFi.isConnected()) { error(NO_NETWORK); return false; }
-		#endif
-
-		String path;
-		if (location.indexOf("/") != -1) { 
-			path = F("/api/timezone/?"); path += urlEncode(location);
-		} else if (location != "") {
-			path = F("/api/address/?"); path += urlEncode(location);
-		} else {
-			path = F("/api/ip");
-		}
-
 		#ifndef EZTIME_ETHERNET
-			WiFiClient client;
+			if (WiFi.status() != WL_CONNECTED) { error(NO_NETWORK); return false; }
+			WiFiUDP udp;
 		#else
-			EthernetClient client;
-		#endif	
-
-		if (!client.connect("timezoneapi.io", 80)) { error(CONNECT_FAILED);	return false; }
-
-		client.print(F("GET "));
-		client.print(path);
-		client.println(F(" HTTP/1.1"));
-		client.println(F("Host: timezoneapi.io"));
-		client.println(F("Connection: close"));
-		client.println();
-		client.setTimeout(3000);
+			EthernetUDP udp;
+		#endif
+	
+		udp.flush();
+		udp.begin(TIMEZONED_LOCAL_PORT);
 		
-		debug(F("Sent request for http://timezoneapi.io")); debugln(path);
-		debugln(F("Reply from server:\r\n"));
+		udp.beginPacket(TIMEZONED_REMOTE_HOST, TIMEZONED_REMOTE_PORT);
+		udp.write((const uint8_t*)location.c_str(), location.length());
+		udp.endPacket();
 		
-		// This "JSON parser" (bwahaha!) fits in the small memory of the AVRs
-		String tzinfo = "";
-		String needle = "\"id\":\"";
-		uint8_t search_state = 0;
-		uint8_t char_found = 0;
-		uint32_t start = millis();
-		while ( search_state < 4  && millis() - start < TIMEZONEAPI_TIMEOUT) {
-			if (client.available()) {
-				char c = client.read();
-				debug(c);
-				if (c == needle.charAt(char_found)) {
-					char_found++;
-					if (char_found == needle.length()) {
-						search_state++;
-						c = 0;
-					}
-				} else {
-					char_found = 0;
-				}
-				if (search_state == 1 || search_state == 3) {
-					if (c == '"') {
-						search_state++;
-						if (search_state == 2) {
-							needle = "\"tz_string\":\"";
-							tzinfo += ' ';
-						}
-					} else if (c && c != '\\') {
-						tzinfo += c;
-					}
-				}
+		// Wait for packet or return false with timed out
+		unsigned long started = millis();
+		uint16_t packetsize = 0;
+		while (!udp.parsePacket()) {
+			delay (1);
+			if (millis() - started > TIMEZONED_TIMEOUT) {
+				udp.stop();	
+				error(TIMEOUT); 
+				udp.stop();	
+				return false;
 			}
 		}
-		debugln(F("\r\n\r\n"));
-		if (search_state != 4 || tzinfo == "") { error(DATA_NOT_FOUND); return false; }
-		
-		infoln(F("success."));
-		info(F("Found: ")); infoln(tzinfo);
-
-		_olsen = tzinfo.substring(0, tzinfo.indexOf(' '));
-		_posix = tzinfo.substring(tzinfo.indexOf(' ') + 1);
-
-		#if defined(EZTIME_CACHE_EEPROM) || defined(EZTIME_CACHE_NVS)
-			writeCache(tzinfo);		// caution, byref to save memory, tzinfo mangled afterwards
-		#endif		
-
-		return true;
+		// Stick result in String recv 
+		String recv;
+		recv.reserve(60);
+		while (udp.available()) recv += (char)udp.read();
+		udp.stop();
+		if (recv.substring(0,6) == "ERROR ") {
+			_server_error = recv.substring(6);
+			error (SERVER_ERROR);	
+			return false;
+		}
+		if (recv.substring(0,3) == "OK ") {
+			_olsen = recv.substring(3, recv.indexOf(" ", 4));
+			_posix = recv.substring(recv.indexOf(" ", 4) + 1);
+			infoln(F("success."));
+			info(F("  Olsen: ")); infoln(_olsen);
+			info(F("  Posix: ")); infoln(_posix);
+			#if defined(EZTIME_CACHE_EEPROM) || defined(EZTIME_CACHE_NVS)
+				String tzinfo = _olsen + " " + _posix;
+				writeCache(tzinfo);		// caution, byref to save memory, tzinfo mangled afterwards
+			#endif
+			return true;
+		}
+		error (DATA_NOT_FOUND);
+		return false;
 	}
+	
 	
 	String Timezone::getOlsen() {
 		return _olsen;

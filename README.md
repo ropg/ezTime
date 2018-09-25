@@ -12,6 +12,8 @@
 
 &nbsp;
 
+> **Newsflash**: *To find the timezone information, ezTime originally used timezoneapi.io, which could be used for free for up to 50 queries a day. They have changed this policy and forced the use of https, both breaking ezTime. As of version 0.7.4, ezTime makes use of its very own online timezone lookup daemon, removing a dependency on some third party that might change their policy just like timezoneapi did. Please see details for [*`setLocation`*](#setlocation) because the interface changed a little. You can now also do GeoIP lookups for automatic local time setting (only in countries which do not span multiple timezones).*
+
 ## A brief history of ezTime
 
 I was working on [M5ez](https://github.com/ropg/M5ez), an interface library to easily make cool-looking programs for the "[M5Stack](http://m5stack.com/)" ESP32 hardware. The status bar of M5ez needed to display the time. That was all, I swear. I figured I would use [Time](https://github.com/PaulStoffregen/Time), Michael Margolis' and Paul Stoffregen's library to do time things on Arduino. Then I needed to sync that to an NTP server, so I figured I would use [NTPclient](https://github.com/arduino-libraries/NTPClient), one of the existing NTP client libraries. And then I wanted it to show the local time, so I would need some way for the user to set an offset between UTC and local time.
@@ -368,7 +370,11 @@ Provide the offset from UTC in minutes at the indicated time (or now if you do n
 
 `boolsetLocation(String location = "")`&nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;**MUST** be prefixed with name of a timezone
 
-With `setLocation` you can provide a string to do an internet lookup for a timezone. If the string contains a forward slash, the string is taken to be on Olsen timezone name, like `Europe/Berlin`. If it does not, it is parsed as a free form address, for which the system will try to find a timezone. You can enter "Paris" and get the info for "Europe/Paris", or enter "Paris, Texas" and get the timezone info for "America/Chicago", which is the Central Time timezone that Texas is in. After the information is retrieved, it is loaded in the current timezone, and cached if a cache is set (see below). `setLocation` will return `false` (Setting either `NO_NETWORK`, `CONNECT_FAILED` or `DATA_NOT_FOUND`) if it cannot find the information online.
+With `setLocation` you can provide a string to do an internet lookup for a timezone. The string can either be an Olsen timezone name, like `Europe/Berlin` (case-sensitive). ([Here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) is a complete list of these names.) Or it can be a two-letter country code for any country that does not span multiple timezones, like `NL` or `DE` (but not `US`). After the information is retrieved, it is loaded in the current timezone, and cached if a cache is set (see below). `setLocation` will return `false` (Setting either `NO_NETWORK`, `DATA_NOT_FOUND` or `SERVER_ERROR`) if it cannot get timezone information.
+
+If you provide no location ( `YourTZ.setLocation()` ), ezTime will attempt to do a GeoIP lookup fo find the country associated with your IP-address. If that is a country that has a single timezone, that timezone will be loaded, otherwise a `SERVER_ERROR` ("Country Spans Multiple Timezones") will result.
+
+In the case of `SERVER_ERROR`, `errorString()` returns the error from the server, which might be "Country Spans Multiple Timezones", "Country Not Found", "GeoIP Lookup Failed" or "Timezone Not Found".
 
 &nbsp;
 
