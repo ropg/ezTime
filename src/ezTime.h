@@ -10,7 +10,7 @@
 // objects created by ezTime.)
 #define ARDUINO_TIMELIB_COMPATIBILITY
 
-// Compiles in NTP updating, timezoneapi.io fetching and caching 
+// Compiles in NTP updating, timezoned fetching and caching 
 #define EZTIME_NETWORK_ENABLE
 
 // Arduino Ethernet shields

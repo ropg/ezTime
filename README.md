@@ -819,25 +819,25 @@ ezTime 0.7.2 ran fine. Did not test networking, so compiled with `#define EZTIME
 
 ![](images/Uno-with-Ethernet.jpg)
 
-ezTime 0.7.2 ran, but the EthernetShield example leaves only 2k of flash:
+ezTime 0.7.4 ran, the EthernetShield example leaves some 5k of flash:
 
 ```
-Sketch uses 30372 bytes (94%) of program storage space. Maximum is 32256 bytes.
-Global variables use 771 bytes (37%) of dynamic memory, leaving 1277 bytes for local variables. Maximum is 2048 bytes.
+Sketch uses 26536 bytes (82%) of program storage space. Maximum is 32256 bytes.
+Global variables use 733 bytes (35%) of dynamic memory, leaving 1315 bytes for local variables. Maximum is 2048 bytes.
 ```
 
-By setting `#define EZTIME_MAX_DEBUGLEVEL_NONE` in `eztime.h` we free up some memory:
+By setting `#define EZTIME_MAX_DEBUGLEVEL_NONE` in `eztime.h` we can free up some more flash:
 
 ```
-Sketch uses 27170 bytes (84%) of program storage space. Maximum is 32256 bytes.
-Global variables use 761 bytes (37%) of dynamic memory, leaving 1287 bytes for local variables. Maximum is 2048 bytes.
+ketch uses 23870 bytes (74%) of program storage space. Maximum is 32256 bytes.
+Global variables use 729 bytes (35%) of dynamic memory, leaving 1319 bytes for local variables. Maximum is 2048 bytes.
 ```
 
-ezTime and NoNetwork example without `#define EZTIME_NETWORK_ENABLE` (if you have another time source):
+ezTime and NoNetwork example without `#define EZTIME_NETWORK_ENABLE` (if you have another time source and are willing to put in the Posix information for timezones yourself.):
 
 ```
-Sketch uses 11490 bytes (35%) of program storage space. Maximum is 32256 bytes.
-Global variables use 376 bytes (18%) of dynamic memory, leaving 1672 bytes for local variables. Maximum is 2048 bytes.
+Sketch uses 11558 bytes (35%) of program storage space. Maximum is 32256 bytes.
+Global variables use 354 bytes (17%) of dynamic memory, leaving 1694 bytes for local variables. Maximum is 2048 bytes.
 ```
 
 &nbsp;
