@@ -378,9 +378,9 @@ In the case of `SERVER_ERROR`, `errorString()` returns the error from the server
 
 &nbsp;
 
-### Timezone caching, timezoneapi.io, EEPROM or NVS
+### Timezone caching, EEPROM or NVS
 
-If you use setLocation, the timezone information comes from timezoneapi.io, a service on the Internet that provides this information. They give everyone 50 free requests per day, so if your Arduino would get stuck in a loop where it boots all the time you would eventually not get timezone information anymore. Also, if that service goes away, your Arduino would not know what time it is anymore.
+If you use setLocation, the timezone information comes from timezoned.rop.nl. I'll try to keep that running as stable as possible, but if that service has a problem, your Arduino would not know what time it is anymore.
 
 That is why you can create a place for ezTime to store the data about the timezone. That way, it doens't need to get the information anew every time the Arduino boots. You can store the cache for a timezone in EEPROM (the default) or NVS.
 
@@ -422,7 +422,7 @@ The Chatham Islands are in Pacific about 800 kilometres east of New Zealand. Som
 
 #### Morocco
 
-Morocco goes on and off Daylight Saving Time twice per year. This currently breaks ezTime as timezoneapi.io gives us a posix string that only contains the first of the periods. Fortunately they will stop doing this in 2020: the Moroccans probably got tired of all the clocks that did not adjust properly.
+Morocco goes on and off Daylight Saving Time twice per year. This currently breaks ezTime as our parser can only handle one DST period per year. Fortunately they will stop doing this in 2020: the Moroccans probably got tired of all the clocks that did not adjust properly.
 
 &nbsp;
 
@@ -535,7 +535,7 @@ These will tell if it is before or after noon for a given `TIME`, return `true` 
 
 &nbsp;
 
-`uint16_t dayOfYear(TIME)`&nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;Both assume default timezone if no timezone is prefixed
+`uint16_t dayOfYear(TIME)`&nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;Assumes default timezone if no timezone is prefixed
 
 Returns how many days have passed in the year. January 1st returns 0,
 
@@ -835,7 +835,7 @@ Global variables use 733 bytes (35%) of dynamic memory, leaving 1315 bytes for l
 By setting `#define EZTIME_MAX_DEBUGLEVEL_NONE` in `eztime.h` we can free up some more flash:
 
 ```
-ketch uses 23870 bytes (74%) of program storage space. Maximum is 32256 bytes.
+Sketch uses 23870 bytes (74%) of program storage space. Maximum is 32256 bytes.
 Global variables use 729 bytes (35%) of dynamic memory, leaving 1319 bytes for local variables. Maximum is 2048 bytes.
 ```
 
@@ -936,7 +936,7 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
          * [getTimezoneName](#gettimezonename)
          * [getOffset](#getoffset)
          * [setLocation](#setlocation)
-         * [Timezone caching, timezoneapi.io, EEPROM or NVS](#timezone-caching-timezoneapiio-eeprom-or-nvs)
+         * [Timezone caching, EEPROM or NVS](#timezone-caching-eeprom-or-nvs)
          * [setCache](#setcache)
          * [clearCache](#clearcache)
          * [Crazy timezones](#crazy-timezones)

@@ -165,34 +165,37 @@ typedef struct {
 #define ISO8601_YWD			"X-\\WW-N"
 #define DEFAULT_TIMEFORMAT	COOKIE
 
-void breakTime(const time_t time, tmElements_t &tm);
-time_t compileTime(const String compile_date = __DATE__, const String compile_time = __TIME__);
-String dayString(const uint8_t day);
-void deleteEvent(const uint8_t event_handle);
-void deleteEvent(void (*function)());
-ezError_t error(const bool reset = false);
-String errorString(const ezError_t err = LAST_ERROR);
-void events();
-time_t makeOrdinalTime(const uint8_t hour, const uint8_t minute, const uint8_t second, uint8_t ordinal, const uint8_t wday, const uint8_t month, uint16_t year);
-time_t makeTime(tmElements_t &tm);
-time_t makeTime(const uint8_t hour, const uint8_t minute, const uint8_t second, const uint8_t day, const uint8_t month, const uint16_t year);
-bool minuteChanged();
-String monthString(const uint8_t month);
-bool secondChanged();
-void setDebug(const ezDebugLevel_t level);
-void setDebug(const ezDebugLevel_t level, Print &device);
-timeStatus_t timeStatus();
-String urlEncode(const String str);
-String zeropad(const uint32_t number, const uint8_t length);	
+namespace ezt {
+	void breakTime(const time_t time, tmElements_t &tm);
+	time_t compileTime(const String compile_date = __DATE__, const String compile_time = __TIME__);
+	String dayShortStr(const uint8_t month);
+	String dayStr(const uint8_t month);
+	void deleteEvent(const uint8_t event_handle);
+	void deleteEvent(void (*function)());
+	ezError_t error(const bool reset = false);
+	String errorString(const ezError_t err = LAST_ERROR);
+	void events();
+	time_t makeOrdinalTime(const uint8_t hour, const uint8_t minute, const uint8_t second, uint8_t ordinal, const uint8_t wday, const uint8_t month, uint16_t year);
+	time_t makeTime(const uint8_t hour, const uint8_t minute, const uint8_t second, const uint8_t day, const uint8_t month, const uint16_t year);
+	time_t makeTime(tmElements_t &tm);
+	bool minuteChanged();
+	String monthShortStr(const uint8_t month);
+	String monthStr(const uint8_t month);
+	bool secondChanged();
+	void setDebug(const ezDebugLevel_t level);
+	void setDebug(const ezDebugLevel_t level, Print &device);
+	timeStatus_t timeStatus();
+	String urlEncode(const String str);
+	String zeropad(const uint32_t number, const uint8_t length);
 
-#ifdef EZTIME_NETWORK_ENABLE
-	bool queryNTP(const String server, time_t &t, unsigned long &measured_at);
-	void setInterval(const uint16_t seconds = 0);
-	void setServer(const String ntp_server = NTP_SERVER);
-	void updateNTP();
-	bool waitForSync(const uint16_t timeout = 0);
-#endif
-
+	#ifdef EZTIME_NETWORK_ENABLE
+		bool queryNTP(const String server, time_t &t, unsigned long &measured_at);
+		void setInterval(const uint16_t seconds = 0);
+		void setServer(const String ntp_server = NTP_SERVER);
+		void updateNTP();
+		bool waitForSync(const uint16_t timeout = 0);
+	#endif
+}
 
 //
 //				T i m e z o n e   c l a s s
@@ -269,34 +272,39 @@ class Timezone {
 extern Timezone UTC;
 extern Timezone *defaultTZ;
 
+namespace ezt {
+	// These bounce through to same-named methods in defaultTZ 
+	String dateTime(const String format = DEFAULT_TIMEFORMAT);
+	String dateTime(time_t t, const String format = DEFAULT_TIMEFORMAT);
+	String dateTime(time_t t, const ezLocalOrUTC_t local_or_utc, const String format = DEFAULT_TIMEFORMAT);
+	uint8_t day(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME); 
+	uint16_t dayOfYear(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+	int16_t getOffset(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+	String getTimezoneName(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+	uint8_t hour(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+	uint8_t hourFormat12(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+	bool isAM(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+	bool isDST(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+	bool isPM(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+	String militaryTZ(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+	uint8_t minute(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+	uint8_t month(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME); 
+	uint16_t ms(time_t t = TIME_NOW);
+	time_t now();
+	uint8_t second(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+	uint8_t setEvent(void (*function)(), const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr);
+	uint8_t setEvent(void (*function)(), time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+	void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t month, const uint16_t yr);
+	void setTime(time_t t);
+	uint8_t weekISO(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+	uint8_t weekday(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+	uint16_t year(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME); 
+	uint16_t yearISO(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+}
 
-// These bounce through to same-named methods in defaultTZ 
-String dateTime(const String format = DEFAULT_TIMEFORMAT);
-String dateTime(time_t t, const String format = DEFAULT_TIMEFORMAT);
-String dateTime(time_t t, const ezLocalOrUTC_t local_or_utc, const String format = DEFAULT_TIMEFORMAT);
-uint8_t day(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME); 
-uint16_t dayOfYear(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-int16_t getOffset(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-String getTimezoneName(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-uint8_t hour(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-uint8_t hourFormat12(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-bool isAM(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-bool isDST(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-bool isPM(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-String militaryTZ(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-uint8_t minute(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-uint8_t month(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME); 
-uint16_t ms(time_t t = TIME_NOW);
-time_t now();
-uint8_t second(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-uint8_t setEvent(void (*function)(), const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr);
-uint8_t setEvent(void (*function)(), time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t month, const uint16_t yr);
-void setTime(time_t t);
-uint8_t weekISO(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-uint8_t weekday(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
-uint16_t year(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME); 
-uint16_t yearISO(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
+#ifndef EZTIME_EZT_NAMESPACE
+	using namespace ezt;
+#endif
 
 
 // The following defines all copied from the original Time lib to keep existing code working
@@ -330,12 +338,6 @@ uint16_t yearISO(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_
 #define hoursToTime_t   ((H)) ( (H) * SECS_PER_HOUR)  
 #define daysToTime_t    ((D)) ( (D) * SECS_PER_DAY) // fixed on Jul 22 2011
 #define weeksToTime_t   ((W)) ( (W) * SECS_PER_WEEK) 
-
-// Aliases to match original Time library
-String monthStr(const uint8_t month);
-String monthShortStr(const uint8_t month);
-String dayStr(const uint8_t month);
-String dayShortStr(const uint8_t month);
 
 
 } // extern "C++"
