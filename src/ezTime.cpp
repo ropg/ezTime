@@ -549,8 +549,8 @@ namespace ezt {
 					events();
 				}
 				infoln(F("Time is in sync"));
-			}		
-	
+			}
+			return true;
 		}
 	
 	#endif // EZTIME_NETWORK_ENABLE
