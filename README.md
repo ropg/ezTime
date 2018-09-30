@@ -184,7 +184,7 @@ in File -> Examples you will now see an ezTime heading down under "Examples from
 
 ### Semi-internal functions
 
-Some functions are not necessarily useful for everyday users of this library, but might be useful to someone someday. For instance, this library checks with the NTP servers automatically, so there should be no need to ever "manually" get an NTP response. But the function to do that is still exposed to the user. Even some functions that have nothing to do with time, like `urlEncode` are there for you to use, simply because they *might* be useful to someone, and the library needed them internally so they come at no extra cost in terms of size. In this manual, the names of these functions are printed in *italics* in their chapter headings, just to make it a easier for you to see which functions are core functionality and which are really not needed in everyday use.
+Some functions are not necessarily useful for everyday users of this library, but might be useful to someone someday. For instance, this library checks with the NTP servers automatically, so there should be no need to ever "manually" get an NTP response. But the function to do that is still exposed to the user. Even some functions that have nothing to do with time, like `zeropad` are there for you to use, simply because they *might* be useful to someone, and the library needed them internally so they come at no extra cost in terms of size. In this manual, the names of these functions are printed in *italics* in their chapter headings, just to make it a easier for you to see which functions are core functionality and which are really not needed in everyday use.
 
 ### Specifying time
 
@@ -721,14 +721,6 @@ In this second form you have to supply all arguments, and it will fill your `tzn
 
 These functions are available for you to use because ezTime needed them internally, so they come at no extra cost, so to speak.
 
-### *urlEncode*
-
-`String urlEncode(String str);`
-
-Does what it says on  the package: url-encodes a string.
-
-&nbsp;
-
 ### *zeropad*
 
 `String zeropad(uint32_t number, uint8_t length);`
@@ -964,7 +956,6 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
          * [<em>compileTime</em>](#compiletime)
          * [<em>tzTime</em>](#tztime)
       * [Various functions](#various-functions)
-         * [<em>urlEncode</em>](#urlencode)
          * [<em>zeropad</em>](#zeropad)
       * [Errors and debug information](#errors-and-debug-information)
          * [<em>setDebug</em>](#setdebug)
@@ -1048,7 +1039,6 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
 | [**`tzTime`**](#tztime) | `time_t` | `TIME` | yes | no | no
 | [**`tzTime`**](#tztime) | `time_t` | `TIME`, `String &tzname`, `bool &is_dst`, `int16_t &offset` | yes | no | no
 | [**`updateNTP`**](#updatentp) | `void` | | no | yes | no
-| [**`urlEncode`**](#urlencode) | `String` | `String str` | no | no | no
 | [**`waitForSync`**](#waitforsync) | `bool` | `uint16_t timeout = 0` | no | yes | no
 | [**`weekISO`**](#weekiso-and-yeariso) | `uint8_t` | `TIME` | optional | no | no
 | [**`weekday`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | no | no
