@@ -79,7 +79,7 @@ namespace {
 		String _ntp_server = NTP_SERVER;
 	#endif
 
-	void error(const ezError_t err) {
+	void triggerError(const ezError_t err) {
 		_last_error = err;
 		if (_last_error) {
 			err(F("ERROR: "));
@@ -132,9 +132,7 @@ namespace ezt {
 		}
 	}
 
-
-
-	ezError_t error(const bool reset /* = false */) { 
+	ezError_t error(const bool reset /* = false */) {
 		ezError_t tmp = _last_error;
 		if (reset) _last_error = NO_ERROR;
 		return tmp;
@@ -434,14 +432,11 @@ namespace ezt {
 			info(F(" ... "));
 
 			#ifndef EZTIME_ETHERNET
-				if (WiFi.status() != WL_CONNECTED) { error(NO_NETWORK); return false; }
+				if (WiFi.status() != WL_CONNECTED) { triggerError(NO_NETWORK); return false; }
 				WiFiUDP udp;
 			#else
 				EthernetUDP udp;
 			#endif
-	
-			udp.flush();
-			udp.begin(NTP_LOCAL_PORT);
 	
 			// Send NTP packet
 			byte buffer[NTP_PACKET_SIZE];
@@ -454,19 +449,21 @@ namespace ezt {
 			buffer[12]  = 'X';			// "kiss code", see RFC5905
 			buffer[13]  = 'E';			// (codes starting with 'X' are not interpreted)
 			buffer[14]  = 'Z';
-			buffer[15]  = 'T';
+			buffer[15]  = 'T';	
+	
+			udp.flush();
+			udp.begin(NTP_LOCAL_PORT);
+			unsigned long started = millis();
 			udp.beginPacket(server.c_str(), 123); //NTP requests are to port 123
 			udp.write(buffer, NTP_PACKET_SIZE);
 			udp.endPacket();
 
 			// Wait for packet or return false with timed out
-			unsigned long started = millis();
-			uint16_t packetsize = 0;
 			while (!udp.parsePacket()) {
 				delay (1);
 				if (millis() - started > NTP_TIMEOUT) {
 					udp.stop();	
-					error(TIMEOUT); 
+					triggerError(TIMEOUT); 
 					return false;
 				}
 			}
@@ -504,7 +501,7 @@ namespace ezt {
 				if (WiFi.status() != WL_CONNECTED) {
 					info(F("Waiting for WiFi ... "));
 					while (WiFi.status() != WL_CONNECTED) {
-						if ( timeout && (millis() - start) / 1000 > timeout ) { error(TIMEOUT); return false;};
+						if ( timeout && (millis() - start) / 1000 > timeout ) { triggerError(TIMEOUT); return false;};
 						events();
 						delay(25);
 					}
@@ -515,7 +512,7 @@ namespace ezt {
 			if (!_time_status != timeSet) {
 				infoln(F("Waiting for time sync"));
 				while (_time_status != timeSet) {
-					if ( timeout && (millis() - start) / 1000 > timeout ) { error(TIMEOUT); return false;};
+					if ( timeout && (millis() - start) / 1000 > timeout ) { triggerError(TIMEOUT); return false;};
 					delay(250);
 					events();
 				}
@@ -551,7 +548,7 @@ Timezone::Timezone(const bool locked_to_UTC /* = false */) {
 }
 
 bool Timezone::setPosix(const String posix) {
-	if (_locked_to_UTC) { error(LOCKED_TO_UTC); return false; }
+	if (_locked_to_UTC) { triggerError(LOCKED_TO_UTC); return false; }
 	_posix = posix;
 	#ifdef EZTIME_NETWORK_ENABLE
 		_olsen = "";
@@ -776,32 +773,30 @@ String Timezone::getPosix() { return _posix; }
 	bool Timezone::setLocation(const String location /* = "GeoIP" */) {
 	
 		info(F("Timezone lookup for: "));
-		infoln(location);
-		if (_locked_to_UTC) { error(LOCKED_TO_UTC); return false; }
+		info(location);
+		info(F(" ... "));
+		if (_locked_to_UTC) { triggerError(LOCKED_TO_UTC); return false; }
 		
 		#ifndef EZTIME_ETHERNET
-			if (WiFi.status() != WL_CONNECTED) { error(NO_NETWORK); return false; }
+			if (WiFi.status() != WL_CONNECTED) { triggerError(NO_NETWORK); return false; }
 			WiFiUDP udp;
 		#else
 			EthernetUDP udp;
 		#endif
-	
+		
 		udp.flush();
 		udp.begin(TIMEZONED_LOCAL_PORT);
-		
+		unsigned long started = millis();
 		udp.beginPacket(TIMEZONED_REMOTE_HOST, TIMEZONED_REMOTE_PORT);
 		udp.write((const uint8_t*)location.c_str(), location.length());
 		udp.endPacket();
 		
 		// Wait for packet or return false with timed out
-		unsigned long started = millis();
-		uint16_t packetsize = 0;
 		while (!udp.parsePacket()) {
 			delay (1);
 			if (millis() - started > TIMEZONED_TIMEOUT) {
 				udp.stop();	
-				error(TIMEOUT); 
-				udp.stop();	
+				triggerError(TIMEOUT);
 				return false;
 			}
 		}
@@ -810,9 +805,12 @@ String Timezone::getPosix() { return _posix; }
 		recv.reserve(60);
 		while (udp.available()) recv += (char)udp.read();
 		udp.stop();
+		info(F("(round-trip "));
+		info(millis() - started);
+		info(F(" ms)  "));
 		if (recv.substring(0,6) == "ERROR ") {
 			_server_error = recv.substring(6);
-			error (SERVER_ERROR);	
+			error (SERVER_ERROR);
 			return false;
 		}
 		if (recv.substring(0,3) == "OK ") {
@@ -852,7 +850,7 @@ String Timezone::getPosix() { return _posix; }
 		#ifdef EZTIME_CACHE_EEPROM
 			bool Timezone::setCache(const int16_t address) {
 				eepromBegin();
-				if (address + EEPROM_CACHE_LEN > eepromLength()) { error(CACHE_TOO_SMALL); return false; }
+				if (address + EEPROM_CACHE_LEN > eepromLength()) { triggerError(CACHE_TOO_SMALL); return false; }
 				_eeprom_address = address;
 				eepromEnd();
 				return setCache();
@@ -887,13 +885,13 @@ String Timezone::getPosix() { return _posix; }
 		
 			#ifdef EZTIME_CACHE_EEPROM
 				eepromBegin();
-				if (_eeprom_address < 0) { error(NO_CACHE_SET); return; }
+				if (_eeprom_address < 0) { triggerError(NO_CACHE_SET); return; }
 				for (int16_t n = _eeprom_address; n < _eeprom_address + EEPROM_CACHE_LEN; n++) EEPROM.write(n, 0);
 				eepromEnd();
 			#endif
 
 			#ifdef EZTIME_CACHE_NVS
-				if (_nvs_name == "" || _nvs_key == "") { error(NO_CACHE_SET); return; }
+				if (_nvs_name == "" || _nvs_key == "") { triggerError(NO_CACHE_SET); return; }
 				Preferences prefs;
 				prefs.begin(_nvs_name.c_str(), false);
 				if (delete_section) {
@@ -913,7 +911,7 @@ String Timezone::getPosix() { return _posix; }
 				if (_eeprom_address < 0) return false;
 
 				info(F("Caching timezone data  "));
-				if (str.length() > MAX_CACHE_PAYLOAD) { error(CACHE_TOO_SMALL); return false; }
+				if (str.length() > MAX_CACHE_PAYLOAD) { triggerError(CACHE_TOO_SMALL); return false; }
 				
 				uint16_t last_byte = _eeprom_address + EEPROM_CACHE_LEN - 1;	
 				uint16_t addr = _eeprom_address;
@@ -984,7 +982,7 @@ String Timezone::getPosix() { return _posix; }
 		bool Timezone::readCache(String &olsen, String &posix, uint8_t &months_since_jan_2018) {
 
 			#ifdef EZTIME_CACHE_EEPROM
-				if (_eeprom_address < 0) { error(NO_CACHE_SET); return false; }
+				if (_eeprom_address < 0) { triggerError(NO_CACHE_SET); return false; }
 				eepromBegin();
 				uint16_t last_byte = _eeprom_address + EEPROM_CACHE_LEN - 1;			
 				
@@ -1049,7 +1047,7 @@ String Timezone::getPosix() { return _posix; }
 			#endif						
 			
 			#ifdef EZTIME_CACHE_NVS
-				if (_nvs_name == "" || _nvs_key == "") { error(NO_CACHE_SET); return false; }
+				if (_nvs_name == "" || _nvs_key == "") { triggerError(NO_CACHE_SET); return false; }
 				
 				Preferences prefs;
 				prefs.begin(_nvs_name.c_str(), true);
@@ -1121,7 +1119,7 @@ uint8_t Timezone::setEvent(void (*function)(), time_t t /* = TIME_NOW */, const 
 			return n + 1;
 		}
 	}
-	error(TOO_MANY_EVENTS);
+	triggerError(TOO_MANY_EVENTS);
 	return 0;
 }
 
