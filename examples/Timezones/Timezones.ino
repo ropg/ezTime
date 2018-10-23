@@ -24,7 +24,7 @@ void setup() {
 	Serial.println(myTZ.dateTime());
 
 	// Or country codes for countries that do not span multiple timezones
-	mtTZ.setLocation(F("de"));
+	myTZ.setLocation(F("de"));
 	Serial.print(F("Germany:         "));
 	Serial.println(myTZ.dateTime());	
 
