@@ -737,8 +737,8 @@ time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, b
 	ezt::breakTime(t, tm);	
 	
 	// in local time
-	time_t dst_start = ezt::makeOrdinalTime(start_time_hr, start_time_min, 0, start_week, start_dow, start_month, tm.Year + 1970);
-	time_t dst_end = ezt::makeOrdinalTime(end_time_hr, end_time_min, 0, end_week, end_dow, end_month, tm.Year + 1970);
+	time_t dst_start = ezt::makeOrdinalTime(start_time_hr, start_time_min, 0, start_week, start_dow + 1, start_month, tm.Year + 1970);
+	time_t dst_end = ezt::makeOrdinalTime(end_time_hr, end_time_min, 0, end_week, end_dow + 1, end_month, tm.Year + 1970);
 	
 	if (local_or_utc == UTC_TIME) {
 		dst_start -= std_offset;
