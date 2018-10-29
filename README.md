@@ -566,7 +566,7 @@ Returns the one-letter military code for the timezone. See [here](https://www.ti
 You might have code that put the time on a display in some really nice-looking format, using `dateTime`. The main loop wants to keep the time updated, but not every time the main loop runs, because it would cause the display to flicker. The classic solution for this is to store the time, recreate the string every time and compare to see if it changed. With `secondChanged` and `minuteChanged` you can just write something like:
 
 ```
-if (minuteChanged()) WriteToSomeDisplay(UTC.dateString("H:i"));
+if (minuteChanged()) WriteToSomeDisplay(UTC.dateTime("H:i"));
 ```
 
 &nbsp;
