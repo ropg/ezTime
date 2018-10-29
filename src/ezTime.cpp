@@ -74,7 +74,6 @@ namespace {
 	timeStatus_t _time_status;
 	bool _initialised = false;
 	#ifdef EZTIME_NETWORK_ENABLE
-		bool _ntp_enabled = true;
 		uint16_t _ntp_interval = NTP_INTERVAL;
 		String _ntp_server = NTP_SERVER;
 	#endif
@@ -509,7 +508,7 @@ namespace ezt {
 				}
 			#endif
 
-			if (!_time_status != timeSet) {
+			if (_time_status != timeSet) {
 				infoln(F("Waiting for time sync"));
 				while (_time_status != timeSet) {
 					if ( timeout && (millis() - start) / 1000 > timeout ) { triggerError(TIMEOUT); return false;};
@@ -1007,8 +1006,6 @@ String Timezone::getPosix() { return _posix; }
 				// OK, we're gonna decompress
 				olsen.reserve(len + 3);		// Everything goes in olsen first. Decompression might overshoot 3 
 				months_since_jan_2018 = EEPROM.read(_eeprom_address);
-				uint8_t outlen = 0;
-				uint8_t n = 0;
 				
 				for (uint8_t n = 0; n < EEPROM_CACHE_LEN - 3; n++) {
 					uint16_t addr = n + _eeprom_address + 2;
@@ -1396,13 +1393,11 @@ uint8_t Timezone::hourFormat12(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t lo
 
 bool Timezone::isAM(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
 	t = tzTime(t, local_or_utc);
-	uint8_t h = t / 3600 % 24;
 	return (t / 3600 % 24 < 12);
 }
 
 bool Timezone::isPM(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
 	t = tzTime(t, local_or_utc);
-	uint8_t h = t / 3600 % 24;
 	return (t / 3600 % 24 >= 12);
 }
 
