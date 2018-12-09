@@ -384,7 +384,7 @@ In the case of `SERVER_ERROR`, `errorString()` returns the error from the server
 
 The service has the potential of seeing which IP-numbers use ezTime and what timezone data they request. Any GeoIP lookups are done against a local database, no third parties are involved. The service does not keep logfiles unless something is wrong and needs debugging. In such a case any logfiles will be deleted after work is done, but within 48 hours at the latest.
 
-Data has never been used for any other purposes than debugging, not will it ever be.
+Data has never been used for any other purposes than debugging, nor is any other use envisioned in the future.
 
 &nbsp;
 
