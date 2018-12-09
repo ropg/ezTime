@@ -370,11 +370,21 @@ Provide the offset from UTC in minutes at the indicated time (or now if you do n
 
 `boolsetLocation(String location = "")`&nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;**MUST** be prefixed with name of a timezone
 
-With `setLocation` you can provide a string to do an internet lookup for a timezone. The string can either be an Olsen timezone name, like `Europe/Berlin` (case-sensitive). ([Here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) is a complete list of these names.) Or it can be a two-letter country code for any country that does not span multiple timezones, like `NL` or `DE` (but not `US`). After the information is retrieved, it is loaded in the current timezone, and cached if a cache is set (see below). `setLocation` will return `false` (Setting either `NO_NETWORK`, `DATA_NOT_FOUND` or `SERVER_ERROR`) if it cannot get timezone information.
+With `setLocation` you can provide a string to do an internet lookup for a timezone. The string can either be an Olsen timezone name, like `Europe/Berlin` (or some unique part of such a name). ([Here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) is a complete list of these names.) Or it can be a two-letter country code for any country that does not span multiple timezones, like `NL` or `DE` (but not `US`). After the information is retrieved, it is loaded in the current timezone, and cached if a cache is set (see below). `setLocation` will return `false` (Setting either `NO_NETWORK`, `DATA_NOT_FOUND` or `SERVER_ERROR`) if it cannot get timezone information.
 
-If you provide no location ( `YourTZ.setLocation()` ), ezTime will attempt to do a GeoIP lookup fo find the country associated with your IP-address. If that is a country that has a single timezone, that timezone will be loaded, otherwise a `SERVER_ERROR` ("Country Spans Multiple Timezones") will result.
+If you provide no location ( `YourTZ.setLocation()` ), ezTime will attempt to do a GeoIP lookup to find the country associated with your IP-address. If that is a country that has a single timezone, that timezone will be loaded, otherwise a `SERVER_ERROR` ("Country Spans Multiple Timezones") will result.
 
 In the case of `SERVER_ERROR`, `errorString()` returns the error from the server, which might be "Country Spans Multiple Timezones", "Country Not Found", "GeoIP Lookup Failed" or "Timezone Not Found".
+
+&nbsp;
+
+### timezoned.rop.nl
+
+`timezoned.rop.nl` is ezTime's own timezone service that it connects to. It is a simple UDP service that gets a packet on UDP port 2342 with the request, and responds with a packet that holds the POSIX information for that timezone (after `OK `) or the error (after `ERR `). It will only respond to the same IP-number once every three seconds to prevent being used in dDoS attacks.
+
+The service has the potential of seeing which IP-numbers use ezTime and what timezone data they request. Any GeoIP lookups are done against a local database, no third parties are involved. The service does not keep logfiles unless something is wrong and needs debugging. In such a case any logfiles will be deleted after work is done, but within 48 hours at the latest.
+
+Data has never been used for any other purposes than debugging, not will it ever be.
 
 &nbsp;
 
@@ -928,6 +938,7 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
          * [getTimezoneName](#gettimezonename)
          * [getOffset](#getoffset)
          * [setLocation](#setlocation)
+         * [timezoned.rop.nl](#timezoned-rop-nl)
          * [Timezone caching, EEPROM or NVS](#timezone-caching-eeprom-or-nvs)
          * [setCache](#setcache)
          * [clearCache](#clearcache)
