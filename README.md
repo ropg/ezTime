@@ -325,8 +325,8 @@ Internally, ezTime stores everything it knows about a timezone as two strings. O
 Allows you to directly enter the posix information for a timezone. For simple timezones, you could set things up manually. For example for India, a mere
 
 ```
-Timezone India
-India.setPosix("IST-5:30")
+Timezone India;
+India.setPosix("IST-5:30");
 Serial.println(India.dateTime());
 ```
 
