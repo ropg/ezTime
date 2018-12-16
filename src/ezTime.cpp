@@ -192,7 +192,7 @@ namespace ezt {
 		if (!_initialised) {
 			for (uint8_t n = 0; n < MAX_EVENTS; n++) _events[n] = { 0, NULL };
 			#ifdef EZTIME_NETWORK_ENABLE
-				updateNTP();	// Start the cycle of updateNTP running and then setting an event for its next run
+				if (_ntp_interval) updateNTP();	// Start the cycle of updateNTP running and then setting an event for its next run
 			#endif
 			_initialised = true;
 		}
