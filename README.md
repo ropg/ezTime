@@ -380,7 +380,7 @@ In the case of `SERVER_ERROR`, `errorString()` returns the error from the server
 
 ### timezoned.rop.nl
 
-`timezoned.rop.nl` is ezTime's own timezone service that it connects to. It is a simple UDP service that gets a packet on UDP port 2342 with the request, and responds with a packet that holds the POSIX information for that timezone (after `OK `) or the error (after `ERR `). It will only respond to the same IP-number once every three seconds to prevent being used in dDoS attacks.
+`timezoned.rop.nl` is ezTime's own timezone service that it connects to. It is a simple UDP service that gets a packet on UDP port 2342 with the request, and responds with a packet that holds the POSIX information for that timezone (after `OK `) or the error (after `ERR `). It will only respond to the same IP-number once every three seconds to prevent being used in DDoS attacks.
 
 The service has the potential of seeing which IP-numbers use ezTime and what timezone data they request. Any GeoIP lookups are done against a local database, no third parties are involved. The service does not keep logfiles unless something is wrong and needs debugging. In such a case any logfiles will be deleted after work is done, but within 48 hours at the latest.
 
