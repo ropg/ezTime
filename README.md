@@ -376,6 +376,8 @@ If you provide no location ( `YourTZ.setLocation()` ), ezTime will attempt to do
 
 In the case of `SERVER_ERROR`, `errorString()` returns the error from the server, which might be "Country Spans Multiple Timezones", "Country Not Found", "GeoIP Lookup Failed" or "Timezone Not Found".
 
+If you execute multiple calls to `setLocation`, make sure they are more than 3 seconds apart, because the server will not answer if calls from the same IP come within 3 seconds of one another (see below).
+
 &nbsp;
 
 ### timezoned.rop.nl

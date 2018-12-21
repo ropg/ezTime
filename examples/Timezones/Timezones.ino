@@ -23,10 +23,17 @@ void setup() {
 	Serial.print(F("New Zealand:     "));
 	Serial.println(myTZ.dateTime());
 
+	// Wait a little bit to not trigger DDoS protection on server
+	// See https://github.com/ropg/ezTime#timezonedropnl
+	delay(5000);
+
 	// Or country codes for countries that do not span multiple timezones
 	myTZ.setLocation(F("de"));
 	Serial.print(F("Germany:         "));
-	Serial.println(myTZ.dateTime());	
+	Serial.println(myTZ.dateTime());
+
+	// Same as above
+	delay(5000);
 
 	// See if local time can be obtained (does not work in countries that span multiple timezones)
 	Serial.print(F("Local (GeoIP):   "));
