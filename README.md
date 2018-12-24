@@ -805,6 +805,20 @@ Should you be the one doing maintenance on this in some far-ish future: For ezTi
 
 &nbsp;
 
+## Inspiration
+
+Please do tell me if you made something cool and I'll include it here.
+
+### Arduino clock
+
+Github user [BugerDread](https://github.com/BugerDread) made an [Arduino clock](https://github.com/BugerDread/esp8266-ezTIME-wifi-clock) using ESP8266, ezTIME and MAX7219 LED display modules. It's pretty:
+
+![](images/ticker-and-ntpclock.jpg)
+
+![](images/esp-ntp-clock.jpg)
+
+&nbsp;
+
 ## ezTime on various Arduino platforms
 
 If your Arduino has anything like normal Arduino networking, we can make it work. In some cases it might take an exception in the code if it needs a special header file or so, but no big deal. And if it has `EEPROM.h` or `Preferences.h` to store things in flash, we can make the cache work too. Please open an issue on [github](htttps://github.com/ropg/ezTime) to tell me if something doesn't work. Here's a list of boards that ezTime has been tested on.
@@ -977,6 +991,8 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
       * [Compatibility with Arduino Time library](#compatibility-with-arduino-time-library)
       * [Smaller footprint, AVR Arduinos](#smaller-footprint-avr-arduinos)
       * [2036 and 2038](#2036-and-2038)
+      * [Inspiration](#Inspiration)
+         * [Arduino clock](#Arduino-clock)
       * [ezTime on various Arduino platforms](#eztime-on-various-arduino-platforms)
          * [DSD Tech ESP8266](#dsd-tech-esp8266)
          * [Teensy 3.2](#teensy-32)
