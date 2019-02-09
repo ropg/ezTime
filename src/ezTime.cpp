@@ -741,8 +741,8 @@ time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, b
 	time_t dst_end = ezt::makeOrdinalTime(end_time_hr, end_time_min, 0, end_week, end_dow + 1, end_month, tm.Year + 1970);
 	
 	if (local_or_utc == UTC_TIME) {
-		dst_start -= std_offset;
-		dst_end -= dst_offset;
+		dst_start += std_offset * 60LL;
+		dst_end += dst_offset * 60LL;
 	}
 	
     if (dst_end > dst_start) {
