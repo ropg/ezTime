@@ -545,7 +545,7 @@ Timezone::Timezone(const bool locked_to_UTC /* = false */) {
 			_nvs_name = "";
 			_nvs_key = "";
 		#endif
-		_olsen = "";
+		_olson = "";
 	#endif
 }
 
@@ -553,7 +553,7 @@ bool Timezone::setPosix(const String posix) {
 	if (_locked_to_UTC) { triggerError(LOCKED_TO_UTC); return false; }
 	_posix = posix;
 	#ifdef EZTIME_NETWORK_ENABLE
-		_olsen = "";
+		_olson = "";
 	#endif
 	return true;
 }
@@ -816,13 +816,13 @@ String Timezone::getPosix() { return _posix; }
 			return false;
 		}
 		if (recv.substring(0,3) == "OK ") {
-			_olsen = recv.substring(3, recv.indexOf(" ", 4));
+			_olson = recv.substring(3, recv.indexOf(" ", 4));
 			_posix = recv.substring(recv.indexOf(" ", 4) + 1);
 			infoln(F("success."));
-			info(F("  Olsen: ")); infoln(_olsen);
+			info(F("  Olson: ")); infoln(_olson);
 			info(F("  Posix: ")); infoln(_posix);
 			#if defined(EZTIME_CACHE_EEPROM) || defined(EZTIME_CACHE_NVS)
-				String tzinfo = _olsen + " " + _posix;
+				String tzinfo = _olson + " " + _posix;
 				writeCache(tzinfo);		// caution, byref to save memory, tzinfo mangled afterwards
 			#endif
 			return true;
@@ -832,8 +832,8 @@ String Timezone::getPosix() { return _posix; }
 	}
 	
 	
-	String Timezone::getOlsen() {
-		return _olsen;
+	String Timezone::getOlson() {
+		return _olson;
 	}	
 
 	
@@ -868,15 +868,15 @@ String Timezone::getPosix() { return _posix; }
 		#endif
 
 		bool Timezone::setCache() {
-			String olsen, posix;
+			String olson, posix;
 			uint8_t months_since_jan_2018;
-			if (readCache(olsen, posix, months_since_jan_2018)) {
+			if (readCache(olson, posix, months_since_jan_2018)) {
 				setPosix(posix);
-				_olsen = olsen;
+				_olson = olson;
 				_cache_month = months_since_jan_2018;
 				if ( (year() - 2018) * 12 + month(LAST_READ) - months_since_jan_2018 > MAX_CACHE_AGE_MONTHS) {
 					infoln(F("Cache stale, getting fresh"));
-					setLocation(olsen);
+					setLocation(olson);
 				}
 				return true;
 			}
@@ -981,7 +981,7 @@ String Timezone::getPosix() { return _posix; }
 		}
 	
 
-		bool Timezone::readCache(String &olsen, String &posix, uint8_t &months_since_jan_2018) {
+		bool Timezone::readCache(String &olson, String &posix, uint8_t &months_since_jan_2018) {
 
 			#ifdef EZTIME_CACHE_EEPROM
 				if (_eeprom_address < 0) { triggerError(NO_CACHE_SET); return false; }
@@ -1007,7 +1007,7 @@ String Timezone::getPosix() { return _posix; }
 				if (len > MAX_CACHE_PAYLOAD) { eepromEnd(); return false; }
 				
 				// OK, we're gonna decompress
-				olsen.reserve(len + 3);		// Everything goes in olsen first. Decompression might overshoot 3 
+				olson.reserve(len + 3);		// Everything goes in olson first. Decompression might overshoot 3 
 				months_since_jan_2018 = EEPROM.read(_eeprom_address);
 				
 				for (uint8_t n = 0; n < EEPROM_CACHE_LEN - 3; n++) {
@@ -1016,32 +1016,32 @@ String Timezone::getPosix() { return _posix; }
 					uint8_t p = EEPROM.read(addr - 1);	// previous byte
 					switch (n % 3) {
 						case 0:
-							olsen += (char)( ((c & 0b11111100) >> 2) + 32 );
+							olson += (char)( ((c & 0b11111100) >> 2) + 32 );
 							break;
 						case 1:
-							olsen += (char)( ((p & 0b00000011) << 4) + ((c & 0b11110000) >> 4) + 32 );
+							olson += (char)( ((p & 0b00000011) << 4) + ((c & 0b11110000) >> 4) + 32 );
 							break;
 						case 2:
-							olsen += (char)( ((p & 0b00001111) << 2) + ((c & 0b11000000) >> 6) + 32 );
-							olsen += (char)( (c & 0b00111111) + 32 );
+							olson += (char)( ((p & 0b00001111) << 2) + ((c & 0b11000000) >> 6) + 32 );
+							olson += (char)( (c & 0b00111111) + 32 );
 					}
-					if (olsen.length() >= len) break;
+					if (olson.length() >= len) break;
 				}
 				
-				uint8_t first_space = olsen.indexOf(' ');
-				posix = olsen.substring(first_space + 1, len);
-				olsen = olsen.substring(0, first_space);
+				uint8_t first_space = olson.indexOf(' ');
+				posix = olson.substring(first_space + 1, len);
+				olson = olson.substring(0, first_space);
 				
-				// Restore case of olsen (best effort)
-				String olsen_lowercase = olsen;
-				olsen_lowercase.toLowerCase();
-				for (uint8_t n = 1; n < olsen.length(); n++) {
-					unsigned char p = olsen.charAt(n - 1);	// previous character
+				// Restore case of olson (best effort)
+				String olson_lowercase = olson;
+				olson_lowercase.toLowerCase();
+				for (uint8_t n = 1; n < olson.length(); n++) {
+					unsigned char p = olson.charAt(n - 1);	// previous character
 					if (p != '_' && p != '/' && p != '-') {
-						olsen.setCharAt(n, olsen_lowercase[n]);
+						olson.setCharAt(n, olson_lowercase[n]);
 					}
 				}
-				info(F("Cache read. Olsen: ")); info(olsen); info (F("  Posix: ")); infoln(posix);
+				info(F("Cache read. Olson: ")); info(olson); info (F("  Posix: ")); infoln(posix);
 				eepromEnd();
 				return true;
 			#endif						
@@ -1061,8 +1061,8 @@ String Timezone::getPosix() { return _posix; }
 				if (first_space && second_space) {
 					months_since_jan_2018 = read_string.toInt();
 					posix = read_string.substring(second_space + 1);
-					olsen = read_string.substring(first_space + 1, second_space);
-					info(F("Cache read. Olsen: ")); info(olsen); info (F("  Posix: ")); infoln(posix);
+					olson = read_string.substring(first_space + 1, second_space);
+					info(F("Cache read. Olson: ")); info(olson); info (F("  Posix: ")); infoln(posix);
 					return true;
 				}
 				return false;
@@ -1077,7 +1077,7 @@ String Timezone::getPosix() { return _posix; }
 
 void Timezone::setDefault() {
 	defaultTZ = this;
-	debug(F("Default timezone set to ")); debug(_olsen); debug(F("  "));debugln(_posix);
+	debug(F("Default timezone set to ")); debug(_olson); debug(F("  "));debugln(_posix);
 }
 
 bool Timezone::isDST(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
@@ -1281,8 +1281,8 @@ String Timezone::dateTime(time_t t, const ezLocalOrUTC_t local_or_utc, const Str
 					out += ezt::zeropad(_last_read_ms, 3);				
 					break;
 				#ifdef EZTIME_NETWORK_ENABLE
-					case 'e':	// Timezone identifier (Olsen)
-						out += getOlsen();
+					case 'e':	// Timezone identifier (Olson)
+						out += getOlson();
 						break;
 				#endif
 				case 'O':	// Difference to Greenwich time (GMT) in hours and minutes written together (+0200)
