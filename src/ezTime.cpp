@@ -418,6 +418,9 @@ namespace ezt {
 				if (_ntp_interval) UTC.setEvent(updateNTP, t + _ntp_interval);
 				_time_status = timeSet;
 			} else {
+			        if ( nowUTC(false) > _last_sync_time + _ntp_interval + NTP_STALE_AFTER ) {
+			        	_time_status = timeNeedsSync;
+			        }
 				UTC.setEvent(updateNTP, nowUTC(false) + NTP_RETRY);
 			}
 		}
