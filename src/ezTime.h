@@ -244,6 +244,7 @@ class Timezone {
 		public:
 			bool setLocation(const String location = "GeoIP");
 			String getOlson();
+			String getOlsen();
 		#ifdef EZTIME_CACHE_EEPROM
 			public:
 				bool setCache(const int16_t address);

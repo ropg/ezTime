@@ -834,9 +834,13 @@ String Timezone::getPosix() { return _posix; }
 	
 	String Timezone::getOlson() {
 		return _olson;
+	}
+
+	String Timezone::getOlsen() {
+		return _olson;
 	}	
 
-	
+
 	#if defined(EZTIME_CACHE_EEPROM) || defined(EZTIME_CACHE_NVS)
 	
 		#if defined(ESP32) || defined(ESP8266)
