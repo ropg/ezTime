@@ -228,7 +228,7 @@ Worse is when you set up a timezone for which you would like to retrieve the day
 
 ## Setting and synchronising time
 
-The NTP request from the scenario above failed because the network wasn't up yet, so the clock would still not be synchronised. A new request will be scheduled for 5 seconds later, and sent when your code (or `waitForSync`) calls `events`.
+The NTP request from the scenario above failed because the network wasn't up yet, so the clock would still not be synchronised. A new request will be scheduled for 1801 seconds later, and sent when your code (or `waitForSync`) calls `events`.
 
 &nbsp;
 
@@ -260,7 +260,7 @@ If your code uses timezones other than UTC, it might want to wait to initialise 
 
 `void setInterval(uint16_t seconds = 0);`
 
-By default, ezTime is set to poll `pool.ntp.org` every 10 minutes. These defaults should work for most people, but you can change them by specifying a new server with `setServer` or a new interval (in seconds) with setInterval. If you call setInterval with an interval of 0 seconds or call it as `setInterval()`, no more NTP queries will be made.
+By default, ezTime is set to poll `pool.ntp.org` about every 30 minutes. These defaults should work for most people, but you can change them by specifying a new server with `setServer` or a new interval (in seconds) with setInterval. If you call setInterval with an interval of 0 seconds or call it as `setInterval()`, no more NTP queries will be made.
 
 &nbsp;
 
@@ -268,7 +268,7 @@ By default, ezTime is set to poll `pool.ntp.org` every 10 minutes. These default
 
 `void updateNTP();`
 
-Updates the time from the NTP server immediately. Will keep retrying every 5 seconds (defined by `NTP_RETRY` in `ezTime.h`), will schedule the next update to happen after the normal interval.
+Updates the time from the NTP server immediately. Will keep retrying about every 30 minutes  (defined by `NTP_RETRY` in `ezTime.h`), will schedule the next update to happen after the normal interval.
 
 &nbsp;
 
