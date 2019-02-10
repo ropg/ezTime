@@ -136,9 +136,9 @@ typedef struct {
 #define NTP_LOCAL_PORT			4242
 #define NTP_SERVER				"pool.ntp.org"
 #define NTP_TIMEOUT				1500			// milliseconds
-#define NTP_INTERVAL			600				// default update interval in seconds
-#define NTP_RETRY				5				// Retry after this many seconds on failed NTP
-#define NTP_STALE_AFTER			3600			// If update due for this many seconds, set timeStatus to timeNeedsSync
+#define NTP_INTERVAL			1801				// default update interval in seconds
+#define NTP_RETRY			1801				// Retry after this many seconds on failed NTP
+#define NTP_STALE_AFTER			3602				// If update due for this many seconds, set timeStatus to timeNeedsSync
 
 #define TIMEZONED_REMOTE_HOST	"timezoned.rop.nl"
 #define TIMEZONED_REMOTE_PORT	2342
