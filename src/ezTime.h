@@ -136,9 +136,9 @@ typedef struct {
 #define NTP_LOCAL_PORT			4242
 #define NTP_SERVER				"pool.ntp.org"
 #define NTP_TIMEOUT				1500			// milliseconds
-#define NTP_INTERVAL			600				// default update interval in seconds
-#define NTP_RETRY				5				// Retry after this many seconds on failed NTP
-#define NTP_STALE_AFTER			3600			// If update due for this many seconds, set timeStatus to timeNeedsSync
+#define NTP_INTERVAL			1801				// default update interval in seconds
+#define NTP_RETRY			1801				// Retry after this many seconds on failed NTP
+#define NTP_STALE_AFTER			3602				// If update due for this many seconds, set timeStatus to timeNeedsSync
 
 #define TIMEZONED_REMOTE_HOST	"timezoned.rop.nl"
 #define TIMEZONED_REMOTE_PORT	2342
@@ -237,13 +237,13 @@ class Timezone {
 		uint16_t year(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);	
 		uint16_t yearISO(time_t t = TIME_NOW, const ezLocalOrUTC_t local_or_utc = LOCAL_TIME);
 	private:
-		String _posix, _olsen;
+		String _posix, _olson;
 		bool _locked_to_UTC;
  		
 	#ifdef EZTIME_NETWORK_ENABLE
 		public:
 			bool setLocation(const String location = "GeoIP");
-			String getOlsen();
+			String getOlson();
 		#ifdef EZTIME_CACHE_EEPROM
 			public:
 				bool setCache(const int16_t address);
@@ -262,7 +262,7 @@ class Timezone {
  			private:
  				bool setCache();
   				bool writeCache(String &str);
- 				bool readCache(String &olsen, String &posix, uint8_t &months_since_jan_2018);
+ 				bool readCache(String &olson, String &posix, uint8_t &months_since_jan_2018);
  				uint8_t _cache_month;
 		#endif
 	#endif	

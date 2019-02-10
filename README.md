@@ -228,7 +228,7 @@ Worse is when you set up a timezone for which you would like to retrieve the day
 
 ## Setting and synchronising time
 
-The NTP request from the scenario above failed because the network wasn't up yet, so the clock would still not be synchronised. A new request will be scheduled for 5 seconds later, and sent when your code (or `waitForSync`) calls `events`.
+The NTP request from the scenario above failed because the network wasn't up yet, so the clock would still not be synchronised. A new request will be scheduled for 1801 seconds later, and sent when your code (or `waitForSync`) calls `events`.
 
 &nbsp;
 
@@ -260,7 +260,7 @@ If your code uses timezones other than UTC, it might want to wait to initialise 
 
 `void setInterval(uint16_t seconds = 0);`
 
-By default, ezTime is set to poll `pool.ntp.org` every 10 minutes. These defaults should work for most people, but you can change them by specifying a new server with `setServer` or a new interval (in seconds) with setInterval. If you call setInterval with an interval of 0 seconds or call it as `setInterval()`, no more NTP queries will be made.
+By default, ezTime is set to poll `pool.ntp.org` about every 30 minutes. These defaults should work for most people, but you can change them by specifying a new server with `setServer` or a new interval (in seconds) with setInterval. If you call setInterval with an interval of 0 seconds or call it as `setInterval()`, no more NTP queries will be made.
 
 &nbsp;
 
@@ -268,7 +268,7 @@ By default, ezTime is set to poll `pool.ntp.org` every 10 minutes. These default
 
 `void updateNTP();`
 
-Updates the time from the NTP server immediately. Will keep retrying every 5 seconds (defined by `NTP_RETRY` in `ezTime.h`), will schedule the next update to happen after the normal interval.
+Updates the time from the NTP server immediately. Will keep retrying about every 30 minutes  (defined by `NTP_RETRY` in `ezTime.h`), will schedule the next update to happen after the normal interval.
 
 &nbsp;
 
@@ -292,7 +292,7 @@ Note that this function is used internally by ezTime, but does not by itself set
 
 Timezones in ezTime are objects. They can be created with `Timezone yourTZ`, where `yourTZ` is the name you choose to refer to the timezone. In this manual, this name will be used from now on. But you can naturally choose any name you want.
 
-Internally, ezTime stores everything it knows about a timezone as two strings. One is the official name of the timezone in "Olsen" format (like `Europe/Berlin`). That name is used to then update when needed all the other information needed to represent time in that timezone. This is in another string, in so-called "posix" format. It's often a little longer and for Berlin it is `CET-1CEST,M3.4.0/2,M10.4.0/3`. The elements of this string have the following meanings:
+Internally, ezTime stores everything it knows about a timezone as two strings. One is the official name of the timezone in "Olson" format (like `Europe/Berlin`). That name is used to then update when needed all the other information needed to represent time in that timezone. This is in another string, in so-called "posix" format. It's often a little longer and for Berlin it is `CET-1CEST,M3.4.0/2,M10.4.0/3`. The elements of this string have the following meanings:
 
 | Element | meaning |
 | ---- | ---- |
@@ -370,7 +370,7 @@ Provide the offset from UTC in minutes at the indicated time (or now if you do n
 
 `boolsetLocation(String location = "")`&nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;**MUST** be prefixed with name of a timezone
 
-With `setLocation` you can provide a string to do an internet lookup for a timezone. The string can either be an Olsen timezone name, like `Europe/Berlin` (or some unique part of such a name). ([Here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) is a complete list of these names.) Or it can be a two-letter country code for any country that does not span multiple timezones, like `NL` or `DE` (but not `US`). After the information is retrieved, it is loaded in the current timezone, and cached if a cache is set (see below). `setLocation` will return `false` (Setting either `NO_NETWORK`, `DATA_NOT_FOUND` or `SERVER_ERROR`) if it cannot get timezone information.
+With `setLocation` you can provide a string to do an internet lookup for a timezone. The string can either be an Olson timezone name, like `Europe/Berlin` (or some unique part of such a name). ([Here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) is a complete list of these names.) Or it can be a two-letter country code for any country that does not span multiple timezones, like `NL` or `DE` (but not `US`). After the information is retrieved, it is loaded in the current timezone, and cached if a cache is set (see below). `setLocation` will return `false` (Setting either `NO_NETWORK`, `DATA_NOT_FOUND` or `SERVER_ERROR`) if it cannot get timezone information.
 
 If you provide no location ( `YourTZ.setLocation()` ), ezTime will attempt to do a GeoIP lookup to find the country associated with your IP-address. If that is a country that has a single timezone, that timezone will be loaded, otherwise a `SERVER_ERROR` ("Country Spans Multiple Timezones") will result.
 
@@ -410,7 +410,7 @@ To only get the timezone data from the internet when the cache is empty or outda
 
 `bool setCache(int16_t address)`&nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;**MUST** be prefixed with name of a timezone
 
-If your ezTime is compiled with `#define EZTIME_CACHE_EEPROM` (which is the default), you can supply an EEPROM location. A single timezone needs 50 bytes to cache. The data is written in compressed form so that the Olsen and Posix strings fit in 3/4 of the space they would normally take up, and along with it is stored a checksum, a length field and a single byte for the month in which the cache was retrieved, in months after January 2018.
+If your ezTime is compiled with `#define EZTIME_CACHE_EEPROM` (which is the default), you can supply an EEPROM location. A single timezone needs 50 bytes to cache. The data is written in compressed form so that the Olson and Posix strings fit in 3/4 of the space they would normally take up, and along with it is stored a checksum, a length field and a single byte for the month in which the cache was retrieved, in months after January 2018.
 
 `bool setCache(String name, String key)`&nbsp;&nbsp;&nbsp;&nbsp;&mdash;&nbsp;**MUST** be prefixed with name of a timezone
 
@@ -473,7 +473,7 @@ We'll start with one of the most powerful functions of ezTime. With `dateTime` y
 | `s` | Seconds with leading zero
 | `T` | abbreviation for timezone, like `CEST`
 | `v` | milliseconds as three digits
-| `e` | Timezone identifier (Olsen name), like `Europe/Berlin`
+| `e` | Timezone identifier (Olson name), like `Europe/Berlin`
 | `O` | Difference to Greenwich time (GMT) in hours and minutes written together, like `+0200`. Here a positive offset means east of UTC.
 | `P` | Same as O but with a colon between hours and minutes, like `+02:00`
 | `Z` | Timezone offset in seconds. West of UTC is negative, east of UTC is positive.
@@ -1027,7 +1027,7 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
 | [**`events`**](#events) | `void` | | no | no | no
 | [**`getOffset`**](#getoffset) | `int16_t` | `TIME` | optional | no | no
 | **function** | **returns** | **arguments** | **TZ prefix** | **network** | **cache** |
-| [**`getOlsen`**](#getolsen) | `String` | | optional | yes | yes |
+| [**`getOlson`**](#getolson) | `String` | | optional | yes | yes |
 | [**`getPosix`**](#getposix) | `String` | | yes | no | no
 | [**`getTimezoneName`**](#gettimezonename) | `String` | `TIME` | optional | no | no
 | [**`hour`**](#time-and-date-as-numbers) | `uint8_t` | `TIME` | optional | no | no

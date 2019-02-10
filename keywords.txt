@@ -53,7 +53,7 @@ militaryTZ	KEYWORD2
 setLocation	KEYWORD2
 setCache	KEYWORD2
 clearCache	KEYWORD2
-getOlsen	KEYWORD2
+getOlson	KEYWORD2
 
 # TimeLib compatibility
 
