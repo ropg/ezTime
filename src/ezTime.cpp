@@ -127,6 +127,7 @@ namespace ezt {
 			case CACHE_TOO_SMALL: return		F("Cache too small");
 			case TOO_MANY_EVENTS: return		F("Too many events");
 			case SERVER_ERROR: return			_server_error; 
+			case INVALID_DATA: return			F("Invalid data received from NTP server");
 			default: return						F("Unkown error");
 		}
 	}
@@ -470,20 +471,55 @@ namespace ezt {
 				}
 			}
 			udp.read(buffer, NTP_PACKET_SIZE);
-			uint32_t highWord, lowWord;
-			highWord = ( buffer[40] << 8 | buffer[41] ) & 0x0000FFFF;	// Must be done in two steps on AVR
+			udp.stop();													// On AVR there's only very limited sockets, we want to free them when done.
+	
+			//print out received packet for debug
+			int i;
+			debug(F("Received data:"));
+			for (i = 0; i < NTP_PACKET_SIZE; i++) {
+				if ((i % 4) == 0) {
+					debugln();
+					debug(String(i) + ": ");
+				}
+				debug(buffer[i], HEX);
+				debug(F(", "));
+			}
+			debugln();
+
+			//prepare timestamps
+			uint32_t highWord, lowWord;	
+			highWord = ( buffer[16] << 8 | buffer[17] ) & 0x0000FFFF;
+			lowWord = ( buffer[18] << 8 | buffer[19] ) & 0x0000FFFF;
+			uint32_t reftsSec = highWord << 16 | lowWord;				// reference timestamp seconds
+
+			highWord = ( buffer[32] << 8 | buffer[33] ) & 0x0000FFFF;
+			lowWord = ( buffer[34] << 8 | buffer[35] ) & 0x0000FFFF;
+			uint32_t rcvtsSec = highWord << 16 | lowWord;				// receive timestamp seconds
+
+			highWord = ( buffer[40] << 8 | buffer[41] ) & 0x0000FFFF;
 			lowWord = ( buffer[42] << 8 | buffer[43] ) & 0x0000FFFF;
-			uint32_t secsSince1900 = highWord << 16 | lowWord;
+			uint32_t secsSince1900 = highWord << 16 | lowWord;			// transmit timestamp seconds
+
+			highWord = ( buffer[44] << 8 | buffer[45] ) & 0x0000FFFF;
+			lowWord = ( buffer[46] << 8 | buffer[47] ) & 0x0000FFFF;
+			uint32_t fraction = highWord << 16 | lowWord;				// transmit timestamp fractions	
+
+			//check if received data makes sense
+			//buffer[1] = stratum - should be 1..15 for valid reply
+			//also checking that all timestamps are non-zero and receive timestamp seconds are <= transmit timestamp seconds
+			if ((buffer[1] < 1) or (buffer[1] > 15) or (reftsSec == 0) or (rcvtsSec == 0) or (rcvtsSec > secsSince1900)) {
+				// we got invalid packet
+				triggerError(INVALID_DATA); 
+				return false;
+			}
+
 			// Set the t and measured_at variables that were passed by reference
 			uint32_t done = millis();
 			info(F("success (round trip ")); info(done - started); infoln(F(" ms)"));
 			t = secsSince1900 - 2208988800UL;					// Subtract 70 years to get seconds since 1970
-			highWord = ( buffer[44] << 8 | buffer[45] ) & 0x0000FFFF;
-			lowWord = ( buffer[46] << 8 | buffer[47] ) & 0x0000FFFF;
-			uint32_t fraction = highWord << 16 | lowWord;		// Must be done via two words on AVR 
 			uint16_t ms = fraction / 4294967UL;					// Turn 32 bit fraction into ms by dividing by 2^32 / 1000 
 			measured_at = done - ((done - started) / 2) - ms;	// Assume symmetric network latency and return when we think the whole second was.
-			udp.stop();											// On AVR there's only very limited sockets, we want to free them when done.
+				
 			return true;
 		}
 
