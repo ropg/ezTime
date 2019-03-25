@@ -126,8 +126,8 @@ namespace ezt {
 			case NO_CACHE_SET: return			F("No cache set");
 			case CACHE_TOO_SMALL: return		F("Cache too small");
 			case TOO_MANY_EVENTS: return		F("Too many events");
-			case SERVER_ERROR: return			_server_error; 
 			case INVALID_DATA: return			F("Invalid data received from NTP server");
+			case SERVER_ERROR: return			_server_error; 
 			default: return						F("Unkown error");
 		}
 	}
