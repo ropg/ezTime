@@ -194,6 +194,7 @@ namespace ezt {
 		void setServer(const String ntp_server = NTP_SERVER);
 		void updateNTP();
 		bool waitForSync(const uint16_t timeout = 0);
+		time_t lastNtpUpdateTime();
 	#endif
 }
 

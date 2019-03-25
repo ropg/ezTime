@@ -272,6 +272,14 @@ Updates the time from the NTP server immediately. Will keep retrying about every
 
 &nbsp;
 
+### *lastNtpUpdateTime*
+
+`time_t lastNtpUpdateTime();`
+
+Will return the last time the time was successfully synchronized with the NTP server.
+
+&nbsp;
+
 ### *queryNTP*
 
 `bool queryNTP(String server, time_t &t, unsigned long &measured_at);`
@@ -945,6 +953,7 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
          * [waitForSync](#waitforsync)
          * [<em>setServer and setInterval</em>](#setserver-and-setinterval)
          * [<em>updateNTP</em>](#updatentp)
+         * [<em>lastNtpUpdateTime</em>](#lastNtpUpdateTime)
          * [<em>queryNTP</em>](#queryntp)
       * [Timezones](#timezones-1)
          * [setDefault](#setdefault)
@@ -1035,6 +1044,7 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
 | [**`isAM`**](#time-and-date-as-numbers) | `bool` | `TIME` | optional | no | no
 | [**`isDST`**](#isdst) | `bool` | `TIME` | optional | no | no
 | [**`isPM`**](#time-and-date-as-numbers) | `bool` | `TIME` | optional | no | no
+| [**`lastNtpUpdateTime`](#lastNtpUpdateTime) | `time_t` | | no | yes | no 
 | [**`makeOrdinalTime`**](#makeordinaltime) | `time_t` | `uint8_t hour`, `uint8_t minute`, `uint8_t second`, `uint8_t ordinal`, `uint8_t wday`, `uint8_t month`, `uint16_t year` | no | no | no
 | [**`makeTime`**](#maketime) | `time_t` | `tmElements_t &tm` | no | no | no
 | [**`makeTime`**](#maketime) | `time_t` | `uint8_t hour`, `uint8_t minute`, `uint8_t second`, `uint8_t day`, `uint8_t month`, `uint16_t year` | no | no | no

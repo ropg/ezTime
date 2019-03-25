@@ -522,6 +522,8 @@ namespace ezt {
 			}
 			return true;
 		}
+		
+		time_t lastNtpUpdateTime() { return _last_sync_time; }
 	
 	#endif // EZTIME_NETWORK_ENABLE
 
