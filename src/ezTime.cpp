@@ -334,7 +334,7 @@ namespace ezt {
 		uint8_t m = month;   
 		uint8_t w = ordinal;
 		if (w == 5) ordinal = 0;
-		if (w == 0) {			// is this a "Last week" rule?
+		if (w == 5) {			// is this a "Last week" rule?
 			if (++m > 12) {		// yes, for "Last", go to the next month
 				m = 1;
 				++year;
