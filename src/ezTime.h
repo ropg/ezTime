@@ -55,7 +55,8 @@ typedef enum {
 	NO_CACHE_SET,
 	CACHE_TOO_SMALL,
 	TOO_MANY_EVENTS,
-	SERVER_ERROR
+	SERVER_ERROR,
+	INVALID_DATA
 } ezError_t;
 
 typedef enum {
