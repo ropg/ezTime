@@ -16,6 +16,7 @@ secondChanged	KEYWORD2
 minuteChanged	KEYWORD2
 queryNTP	KEYWORD2
 updateNTP	KEYWORD2
+lastNtpUpdateTime	KEYWORD2
 setServer	KEYWORD2
 setInterval	KEYWORD2
 waitForSync	KEYWORD2
