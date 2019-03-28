@@ -300,7 +300,7 @@ Note that this function is used internally by ezTime, but does not by itself set
 
 Timezones in ezTime are objects. They can be created with `Timezone yourTZ`, where `yourTZ` is the name you choose to refer to the timezone. In this manual, this name will be used from now on. But you can naturally choose any name you want.
 
-Internally, ezTime stores everything it knows about a timezone as two strings. One is the official name of the timezone in "Olson" format (like `Europe/Berlin`). That name is used to then update when needed all the other information needed to represent time in that timezone. This is in another string, in so-called "posix" format. It's often a little longer and for Berlin it is `CET-1CEST,M3.4.0/2,M10.4.0/3`. The elements of this string have the following meanings:
+Internally, ezTime stores everything it knows about a timezone as two strings. One is the official name of the timezone in "Olson" format (like `Europe/Berlin`). That name is used to then update when needed all the other information needed to represent time in that timezone. This is in another string, in so-called "posix" format. It's often a little longer and for Berlin it is `CET-1CEST,M3.5.0,M10.5.0/3`. The elements of this string have the following meanings:
 
 | Element | meaning |
 | ---- | ---- |
@@ -308,11 +308,11 @@ Internally, ezTime stores everything it knows about a timezone as two strings. O
 | `-1` | Hours offset from UTC, meaning subtract one hour from this time to get to UTC. (Note offset is often written elsewhere the other way around (so +1 in this case), just to confuse things.) Could also specify minutes, like `-05:30` for India. |
 | `CEST` | Name of timezone in Daylight Saving  Time (DST), CEST stands for Central European Summer Time |
 | `,M3` | DST starts in March |
-| `.4` | On the fourth occurrence of
+| `.5` | On the last occurrence of
 | `.0` | a Sunday |
 | `/2` | at 02:00 local time |
 | `,M10` | DST ends in October |
-| `.4` | on the fourth occurrence of |
+| `.5` | on the last occurrence of |
 | `.0` | a Sunday |
 | `/3` | at 03:00 local time |
 
