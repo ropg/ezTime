@@ -1207,7 +1207,7 @@ String Timezone::dateTime(time_t t, const ezLocalOrUTC_t local_or_utc, const Str
 	String tzname;
 	bool is_dst;
 	int16_t offset;
-	t = tzTime(t, LOCAL_TIME, tzname, is_dst, offset);
+	t = tzTime(t, local_or_utc, tzname, is_dst, offset);
 
 	String tmpstr;
 	uint8_t tmpint8;
