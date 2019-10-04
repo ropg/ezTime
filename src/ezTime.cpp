@@ -149,108 +149,20 @@ namespace ezt {
 		infoln(debugLevelString(level));
 	}
 
-	////////////////////////
 
-	#ifdef EZTIME_LANG_DE
-		String monthStr(const uint8_t month) {
-			switch(month) {
-				case 1: return  F("Januar");
-				case 2: return  F("Februar");		
-				case 3: return  F("März");
-				case 4: return  F("April");
-				case 5: return  F("Mai");
-				case 6: return  F("Juni");
-				case 7: return  F("Juli");
-				case 8: return  F("August");
-				case 9: return  F("September");
-				case 10: return F("Oktober");
-				case 11: return F("November");
-				case 12: return F("Dezember");
-			}
-			return "";
-		}
+	// The include below includes the dayStr, dayShortStr, monthStr and monthShortStr from the appropriate language file
+	// in the /src/lang subdirectory.
 
-		String dayStr(const uint8_t day) {
-			switch(day) {
-				case 1: return F("Sonntag");
-				case 2: return F("Montag");
-				case 3: return F("Dienstag");		
-				case 4: return F("Mittwoch");
-				case 5: return F("Donnerstag");
-				case 6: return F("Freitag");
-				case 7: return F("Samstag");
-			}
-			return "";
-		}
-	#elif EZTIME_LANG_NL
-		String monthStr(const uint8_t month) {
-			switch(month) {
-				case 1: return  F("Januari");
-				case 2: return  F("Februari");		
-				case 3: return  F("Maart");
-				case 4: return  F("April");
-				case 5: return  F("Mei");
-				case 6: return  F("Juni");
-				case 7: return  F("Juli");
-				case 8: return  F("Augustus");
-				case 9: return  F("September");
-				case 10: return F("October");
-				case 11: return F("November");
-				case 12: return F("December");
-			}
-			return "";
-		}
 
-		String dayStr(const uint8_t day) {
-			switch(day) {
-				case 1: return F("Zondag");
-				case 2: return F("Maandag");
-				case 3: return F("Dinsdag");		
-				case 4: return F("Woensdag");
-				case 5: return F("Donderdag");
-				case 6: return F("Vrijdag");
-				case 7: return F("Zaterdag");
-			}
-			return "";
-		}
+	#ifdef EZTIME_LANGUAGE
+		#define XSTR(x) #x
+		#define STR(x) XSTR(x)
+		#include STR(lang/EZTIME_LANGUAGE)
 	#else
-		String monthStr(const uint8_t month) {
-			switch(month) {
-				case 1: return  F("January");
-				case 2: return  F("February");		
-				case 3: return  F("March");
-				case 4: return  F("April");
-				case 5: return  F("May");
-				case 6: return  F("June");
-				case 7: return  F("July");
-				case 8: return  F("August");
-				case 9: return  F("September");
-				case 10: return F("October");
-				case 11: return F("November");
-				case 12: return F("December");
-			}
-			return "";
-		}
-
-		String dayStr(const uint8_t day) {
-			switch(day) {
-				case 1: return F("Sunday");
-				case 2: return F("Monday");
-				case 3: return F("Tuesday");		
-				case 4: return F("Wednesday");
-				case 5: return F("Thursday");
-				case 6: return F("Friday");
-				case 7: return F("Saturday");
-			}
-			return "";
-		}
+		#include "lang/ezTime_EN"	
 	#endif
 
-
-	// Original time lib compatibility
-	String dayShortStr(const uint8_t day) { return dayStr(day).substring(0,3); }
-	String monthShortStr(const uint8_t month) { return monthStr(month).substring(0,3); }
-
+	//
 
 	timeStatus_t timeStatus() { return _time_status; }
 
@@ -1306,15 +1218,9 @@ String Timezone::dateTime(time_t t, const ezLocalOrUTC_t local_or_utc, const Str
 				case 'd':	// Day of the month, 2 digits with leading zeros
 					out += ezt::zeropad(tm.Day, 2);
 					break;
-				#ifdef EZTIME_TWO_LETTER_DAY
-					case 'D':	// A textual representation of a day, two letters
-						out += ezt::dayStr(tm.Wday).substring(0,2);
-						break;
-				#else
-					case 'D':	// A textual representation of a day, three letters
-						out += ezt::dayStr(tm.Wday).substring(0,3);
-						break;
-				#endif
+				case 'D':	// A textual representation of a day, usually two or three letters
+					out += ezt::dayShortStr(tm.Wday);
+					break;
 				case 'j':	// Day of the month without leading zeros
 					out += String(tm.Day);
 					break;
@@ -1351,8 +1257,8 @@ String Timezone::dateTime(time_t t, const ezLocalOrUTC_t local_or_utc, const Str
 				case 'm':	// Numeric representation of a month, with leading zeros
 					out += ezt::zeropad(tm.Month, 2);
 					break;
-				case 'M':	// A short textual representation of a month, three letters
-					out += ezt::monthStr(tm.Month).substring(0,3);
+				case 'M':	// A short textual representation of a month, usually three letters
+					out += ezt::monthShortStr(tm.Month);
 					break;
 				case 'n':	// Numeric representation of a month, without leading zeros
 					out += String(tm.Month);

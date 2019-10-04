@@ -42,6 +42,8 @@ Overlooking the battlefield after implementing some part of this, it seemed like
 
 **time-saving**: No more time spent on writing code to print date or time in some nicer way. Print things like "8:20 PM" or "Saturday the 23rd of August 2018" with ease. Prevent display-flicker with `minuteChanged()` and `secondChanged()` functions without storing any values to compare.
 
+**multilingual**: Can display names of days and months in different languages. Easy to add your own language.
+
 **small enough**: Works with all features and full debugging information on an old Arduino Uno with an Ethernet Shield, leaving 2/3 of RAM and even some of the flash for you to work with. Various `#define` options let you leave parts of the library out if you want to make it smaller: you can even leave out the networking altogether if you have a different time source.
 
 **easy to use**: Don't believe it until you see it. Have a look at some of these examples to see how easy it is to use.
@@ -605,6 +607,12 @@ These functions will take a numeric argument and convert it to the name of the d
 
 &nbsp;
 
+### different languages
+
+If you edit the ezTime.h file in the library directory and set the EZTIME_LANGUAGE define to NL or DE, you will get the names of the months and days in Dutch or German respectively. The functions that return these names are separated out in files in the `src/lang` directory, the files there will show you what languages are currently supported. If you add a file in this directory you will add a language, it is that easy. Please submit the files you make via a pull request so others can use ezTime in their own language too.
+
+&nbsp;
+
 ## Events
 
 ### events
@@ -978,6 +986,7 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
          * [<em>militaryTZ</em>](#militarytz)
          * [secondChanged and minuteChanged](#secondchanged-and-minutechanged)
          * [names of days and months](#names-of-days-and-months)
+         * [different languages](#different-languages)
       * [Events](#events)
          * [events](#events-1)
          * [setEvent](#setevent)
