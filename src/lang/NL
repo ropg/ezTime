@@ -9,7 +9,7 @@
 			case 7: return  F("juli");
 			case 8: return  F("augustus");
 			case 9: return  F("september");
-			case 10: return F("october");
+			case 10: return F("oktober");
 			case 11: return F("november");
 			case 12: return F("december");
 		}
