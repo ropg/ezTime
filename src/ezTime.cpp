@@ -159,7 +159,7 @@ namespace ezt {
 		#define STR(x) XSTR(x)
 		#include STR(lang/EZTIME_LANGUAGE)
 	#else
-		#include "lang/ezTime_EN"	
+		#include "lang/EN"
 	#endif
 
 	//
