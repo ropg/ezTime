@@ -1,19 +1,19 @@
 String monthStr(const uint8_t month) {
-switch(month) {
-case 1: return F("gener");
-case 2: return F("febrer");
-case 3: return F("març");
-case 4: return F("abril");
-case 5: return F("maig");
-case 6: return F("juny");
-case 7: return F("juliol");
-case 8: return F("agost");
-case 9: return F("setembre");
-case 10: return F("octubre");
-case 11: return F("novembre");
-case 12: return F("desembre");
-}
-return "";
+	switch(month) {
+	case 1: return F("gener");
+	case 2: return F("febrer");
+	case 3: return F("març");
+	case 4: return F("abril");
+	case 5: return F("maig");
+	case 6: return F("juny");
+	case 7: return F("juliol");
+	case 8: return F("agost");
+	case 9: return F("setembre");
+	case 10: return F("octubre");
+	case 11: return F("novembre");
+	case 12: return F("desembre");
+	}
+	return "";
 }
 
 String monthShortStr(const uint8_t month) { return monthStr(month).substring(0,3); }
