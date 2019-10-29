@@ -12,8 +12,6 @@
 
 &nbsp;
 
-> **Newsflash**: *To find the timezone information, ezTime originally used timezoneapi.io, which could be used for free for up to 50 queries a day. They have changed this policy and forced the use of https, both breaking ezTime. (For more information see [here](https://github.com/ropg/ezTime/issues/2).) As of version 0.7.4, ezTime makes use of its very own online timezone lookup daemon, removing a dependency on some third party that might change their policy just like timezoneapi did. Please see details for [*`setLocation`*](#setlocation) because the interface changed a little. You can now also do GeoIP lookups for automatic local time setting (only in countries which do not span multiple timezones).*
-
 ## A brief history of ezTime
 
 I was working on [M5ez](https://github.com/ropg/M5ez), an interface library to easily make cool-looking programs for the "[M5Stack](http://m5stack.com/)" ESP32 hardware. The status bar of M5ez needed to display the time. That was all, I swear. I figured I would use [Time](https://github.com/PaulStoffregen/Time), Michael Margolis' and Paul Stoffregen's library to do time things on Arduino. Then I needed to sync that to an NTP server, so I figured I would use [NTPclient](https://github.com/arduino-libraries/NTPClient), one of the existing NTP client libraries. And then I wanted it to show the local time, so I would need some way for the user to set an offset between UTC and local time.
@@ -397,6 +395,8 @@ If you execute multiple calls to `setLocation`, make sure they are more than 3 s
 The service has the potential of seeing which IP-numbers use ezTime and what timezone data they request. Any GeoIP lookups are done against a local database, no third parties are involved. The service does not keep logfiles unless something is wrong and needs debugging. In such a case any logfiles will be deleted after work is done, but within 48 hours at the latest.
 
 Data has never been used for any other purposes than debugging, nor is any other use envisioned in the future.
+
+The code for the timezoned server is included in the server directory of the library repository, in case someone wnats to know how that works or insists on running a timezone information server themselves. Be aware that it is a bit of an ugly hack at the time of writing this... 
 
 &nbsp;
 
