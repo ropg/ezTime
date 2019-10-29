@@ -1,5 +1,7 @@
 # timezoned - The Timezone Daemon
 
+>If you do not plan to run your own timezone information server, you do not need anything in this directory...
+
 This is a brutally ugly hack that serves timezone information via UDP port 2342. To use it, try the following on a unix machine with PHP installed:
 
 * Create a user called 'timezoned'
