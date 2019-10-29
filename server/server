@@ -20,7 +20,7 @@ if ($file = fopen("/home/timezoned/posixinfo", "r")) {
 }
 
 // Read zone1970.tab
-if ($file = fopen("/home/timezoneddownload/zone1970.tab", "r")) {
+if ($file = fopen("/home/timezoned/download/zone1970.tab", "r")) {
     while(!feof($file)) {
         $line = fgets($file);
         if ($line[0] != "#") {
