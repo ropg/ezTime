@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# PROVIDE: timezoned
+# REQUIRE: LOGIN cleanvar sshd
+
+. /etc/rc.subr
+
+name=timezoned
+rcvar=timezoned_enable
+
+: ${timezoned_enable="NO"}
+: ${timezoned_pidfile="/var/run/timezoned/timezoned.pid"}
+: ${timezoned_user="timezoned"}
+: ${timezoned_group="timezoned"}
+
+command="/usr/sbin/daemon"
+command_interpreter="/usr/local/bin/php"
+command_args="-c -f -r -P ${timezoned_pidfile} -r /home/timezoned/server"
+
+load_rc_config $name
+
+run_rc_command "$1"

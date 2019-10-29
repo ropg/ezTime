@@ -1,0 +1,161 @@
+#!/usr/local/bin/php
+
+<?php
+ 
+//Reduce errors
+// error_reporting(0);
+
+$tz = array();
+
+// Read posixinfo
+if ($file = fopen("/home/timezoned/posixinfo", "r")) {
+    while(!feof($file)) {
+        $line = fgets($file);
+		preg_match("/^(.*?) (.*?)$/", $line, $matches);
+		if ($matches[1] != "" && $matches[2] != "") {
+			array_push($tz, array("olsen" => trim($matches[1]), "posix" => trim($matches[2])));
+		}
+    }
+    fclose($file);
+}
+
+// Read zone1970.tab
+if ($file = fopen("/home/timezoneddownload/zone1970.tab", "r")) {
+    while(!feof($file)) {
+        $line = fgets($file);
+        if ($line[0] != "#") {
+        	$columns = explode("\t", $line);
+        	if (count($columns) >= 3) {
+				$countries = explode(",", $columns[0]);
+				for ($n = 0; $n < count($countries); $n++) {
+					$country = trim($countries[$n]);
+					$insert_at = -1;
+					$posix = "";
+					for ($m = 0; $m < count($tz); $m++) {
+						if (trim($tz[$m]["olsen"]) == trim($columns[2])) {
+							$posix = $tz[$m]["posix"];
+							if (!isset($tz[$m]["country"])) {
+								$insert_at = $m;
+							}
+						}
+					}
+					if ($insert_at == -1) {
+						$insert_at = count($tz);
+						array_push($tz, array());
+					}
+					$tz[$insert_at]["country"] = $countries[$n];
+					$tz[$insert_at]["coordinates"] = $columns[1];
+					$tz[$insert_at]["olsen"] = trim($columns[2]);
+					if ($posix != "") $tz[$insert_at]["posix"] = $posix;
+					if (isset ($columns[3])) $tz[$insert_at]["comments"] = $columns[3];
+				}
+			}
+		}
+	}
+}
+
+echo "Data read \n";
+ 
+//Create a UDP socket
+
+if(!($sock = socket_create(AF_INET, SOCK_DGRAM, 0)))
+{
+	$errorcode = socket_last_error();
+	$errormsg = socket_strerror($errorcode);
+	 
+	die("Couldn't create socket: [$errorcode] $errormsg\n");
+}
+ 
+echo "Socket created \n";
+
+// Bind the source address
+if( !socket_bind($sock, "0.0.0.0" , 2342) )
+{
+	$errorcode = socket_last_error();
+	$errormsg = socket_strerror($errorcode);
+	 
+	die("Could not bind socket : [$errorcode] $errormsg\n");
+}
+ 
+echo "Socket bind OK \n";
+
+$last_ask = array();
+
+//Process packets. This loop can handle multiple clients
+while(1)
+{	 
+	//Receive packet
+	$r = socket_recvfrom($sock, $packet, 512, 0, $remote_ip, $remote_port);
+
+	// dDoS/flood protection
+	if (isset($last_ask[$remote_ip]) && $last_ask[$remote_ip] > time() - 3) continue;
+	$last_ask[$remote_ip] = time();	
+
+	$parts = explode("#", $packet, 2);
+	$query = $parts[0];
+	$version = $parts[1];
+	$process = strtoupper(str_replace(" ", "_", $query));
+	
+	$logstart = date("D, d M Y H:i:s") . "Z -- $remote_ip:$remote_port --";
+	
+	// GeoIP ?
+	if ($process == "GEOIP") {
+		if (preg_match("/: ([A-Z][A-Z]),/", exec("geoiplookup " . $remote_ip), $matches)) {
+			$process = $matches[1];
+		} else {
+			echo "$logstart ERR GeoIP Lookup Failed\n";
+			socket_sendto($sock, "ERROR GeoIP Lookup Failed", 100 , 0 , $remote_ip , $remote_port);
+			continue;
+		}
+	}
+	
+	if ($process == "UK") $process = "GB";
+	if ($process == "DE") $process = "EUROPE/BERLIN";
+	
+
+	// If a two-letter country-code was provided
+	if (preg_match('/^[A-Z][A-Z]$/', $process)) {
+		// Convert to name of timezone if the country happens to have only one timezone
+		$num_matches = 0;
+		for ($m = 0; $m < count($tz); $m++) {
+			if ($tz[$m]["country"] == $process) {
+				$num_matches++;
+				$posix = $tz[$m]["posix"];
+				$olsen = $tz[$m]["olsen"];
+			}
+		}
+		switch ($num_matches) {
+			case 0:
+				echo "$logstart ERR COUNTRY NOT FOUND: $query\n";
+				socket_sendto($sock, "ERROR Country Not Found", 100 , 0 , $remote_ip , $remote_port);
+				break;
+			case 1:
+				echo "$logstart OK $query -> $olsen $posix\n";
+				socket_sendto($sock, "OK " . $olsen . " " . $posix , 100 , 0 , $remote_ip , $remote_port);
+				break;
+			default:
+				echo "$logstart ERR MULTIPLE TIMEZONES: $query\n";
+				socket_sendto($sock, "ERROR Country Spans Multiple Timezones", 100 , 0 , $remote_ip , $remote_port);
+				break;
+			//
+		}
+	} else {
+		$num_matches = 0;
+		for ($m = 0; $m < count($tz); $m++) {
+			if (strpos(strtoupper($tz[$m]["olsen"]), $process) !== false) {
+				$num_matches++;
+				$posix = $tz[$m]["posix"];
+				$olsen = $tz[$m]["olsen"];
+				echo "$logstart OK $query -> $olsen $posix\n";
+				socket_sendto($sock, "OK " . $olsen . " " . $posix , 100 , 0 , $remote_ip , $remote_port);
+				break;	
+			}
+		}
+		if (!$num_matches) {
+			echo "$logstart ERR TIMEZONE NOT FOUND: $query\n";
+			socket_sendto($sock, "ERROR Timezone Not Found", 100 , 0 , $remote_ip , $remote_port);			
+		}
+	}
+}
+ 
+socket_close($sock);

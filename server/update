@@ -1,0 +1,26 @@
+#!/bin/sh
+
+rm -rf ~timezoned/download
+mkdir ~timezoned/download
+
+rm -rf ~timezoned/zoneinfo
+mkdir ~timezoned/zoneinfo
+
+cd ~timezoned/download
+
+wget ftp://ftp.iana.org/tz/tzdata-latest.tar.gz
+tar zxvf tzdata-latest.tar.gz
+rm tzdata-latest.tar.gz
+for i in `ls`; do zic -d ~timezoned/zoneinfo $i;done
+
+rm ~timezoned/posixinfo
+
+cd ~timezoned/zoneinfo
+for i in `find *|grep /`
+do
+	if [ -f $i ]; then
+		echo -n $i  >> ~timezoned/posixinfo
+		echo -n " " >> ~timezoned/posixinfo
+		tail -1 $i  >> ~timezoned/posixinfo
+	fi
+done
