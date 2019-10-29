@@ -85,7 +85,7 @@ typedef enum {
 #define SATURDAY		7
 
 #define JANUARY			1
-#define FEBRUARI		2
+#define FEBRUARY		2
 #define MARCH			3
 #define APRIL			4
 #define MAY				5
