@@ -146,6 +146,11 @@ while(1)
 				$num_matches++;
 				$posix = $tz[$m]["posix"];
 				$olsen = $tz[$m]["olsen"];
+				
+				// Ireland has negative Summer Time as Winter time which messes things up
+				// See https://github.com/ropg/ezTime/issues/65 if you must know.
+				if ($olsen == "Europe/Dublin") $posix = "GMT0IST,M3.5.0/1,M10.5.0"; 
+				
 				echo "$logstart OK $query -> $olsen $posix\n";
 				socket_sendto($sock, "OK " . $olsen . " " . $posix , 100 , 0 , $remote_ip , $remote_port);
 				break;	
