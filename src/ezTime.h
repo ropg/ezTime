@@ -23,6 +23,10 @@
 #define EZTIME_CACHE_EEPROM
 // #define EZTIME_CACHE_NVS
 
+// Uncomment if you want to access ezTime functions only after "ezt."
+// (to avoid naming conflicts in bigger projects, e.g.) 
+// #define EZTIME_EZT_NAMESPACE
+
 
 // Warranty void if edited below this point...
 
