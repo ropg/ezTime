@@ -750,32 +750,32 @@ time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, b
 		is_dst = false;
 		offset = std_offset;
 	} else {
-	int16_t dst_offset = std_offset - dst_shift_hr * 60 - dst_shift_min;
-	// to find the year
-	tmElements_t tm;
-	ezt::breakTime(t, tm);	
-	
-	// in local time
-	time_t dst_start = ezt::makeOrdinalTime(start_time_hr, start_time_min, 0, start_week, start_dow + 1, start_month, tm.Year + 1970);
-	time_t dst_end = ezt::makeOrdinalTime(end_time_hr, end_time_min, 0, end_week, end_dow + 1, end_month, tm.Year + 1970);
-	
-	if (local_or_utc == UTC_TIME) {
-		dst_start += std_offset * 60LL;
-		dst_end += dst_offset * 60LL;
-	}
-	
-    if (dst_end > dst_start) {
-        is_dst = (t >= dst_start && t < dst_end);		// northern hemisphere
-    } else {
-        is_dst = !(t >= dst_end && t < dst_start);		// southern hemisphere
-    }
+		int16_t dst_offset = std_offset - dst_shift_hr * 60 - dst_shift_min;
+		// to find the year
+		tmElements_t tm;
+		ezt::breakTime(t, tm);	
+		
+		// in local time
+		time_t dst_start = ezt::makeOrdinalTime(start_time_hr, start_time_min, 0, start_week, start_dow + 1, start_month, tm.Year + 1970);
+		time_t dst_end = ezt::makeOrdinalTime(end_time_hr, end_time_min, 0, end_week, end_dow + 1, end_month, tm.Year + 1970);
+		
+		if (local_or_utc == UTC_TIME) {
+			dst_start += std_offset * 60LL;
+			dst_end += dst_offset * 60LL;
+		}
+		
+		if (dst_end > dst_start) {
+			is_dst = (t >= dst_start && t < dst_end);		// northern hemisphere
+		} else {
+			is_dst = !(t >= dst_end && t < dst_start);		// southern hemisphere
+		}
 
-	if (is_dst) {
-		offset = dst_offset;
-		tzname = _posix.substring(dstname_begin, dstname_end + 1);
-	} else {
-		offset = std_offset;
-	}
+		if (is_dst) {
+			offset = dst_offset;
+			tzname = _posix.substring(dstname_begin, dstname_end + 1);
+		} else {
+			offset = std_offset;
+		}
 	}
 
 	if (local_or_utc == LOCAL_TIME) {
@@ -1183,7 +1183,18 @@ String Timezone::dateTime(time_t t, const ezLocalOrUTC_t local_or_utc, const Str
 	String tzname;
 	bool is_dst;
 	int16_t offset;
-	t = tzTime(t, LOCAL_TIME, tzname, is_dst, offset);
+
+	if (t == TIME_NOW || t == LAST_READ || local_or_utc == UTC_TIME) {
+		// in these cases we actually want tzTime to translate the time for us
+		// back in to this timezone's time as well as grab the timezone info
+		// from the stored POSIX data
+		t = tzTime(t, UTC_TIME, tzname, is_dst, offset);
+	} else {
+		// when receiving a local time we don't want to translate the timestamp
+		// but rather use tzTime to just parse the info about the timezone from
+		// the stored POSIX data
+		tzTime(t, LOCAL_TIME, tzname, is_dst, offset);
+	}
 
 	String tmpstr;
 	uint8_t tmpint8;
