@@ -749,9 +749,7 @@ time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, b
 		if (tzname == "UTC" && std_offset) tzname = "???";
 		is_dst = false;
 		offset = std_offset;
-		return t - std_offset * 60;
-	}
-
+	} else {
 	int16_t dst_offset = std_offset - dst_shift_hr * 60 - dst_shift_min;
 	// to find the year
 	tmElements_t tm;
@@ -777,6 +775,7 @@ time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, b
 		tzname = _posix.substring(dstname_begin, dstname_end + 1);
 	} else {
 		offset = std_offset;
+	}
 	}
 
 	if (local_or_utc == LOCAL_TIME) {
