@@ -83,7 +83,7 @@ New Zealand time: Friday, 07-Sep-2018 23:25:11 NZST
 
 ```
 Serial.println("COOKIE:      " + UTC.dateTime(COOKIE));
-Serial.println("IS8601:      " + UTC.dateTime(ISO8601));
+Serial.println("ISO8601:      " + UTC.dateTime(ISO8601));
 Serial.println("RFC822:      " + UTC.dateTime(RFC822));
 Serial.println("RFC850:      " + UTC.dateTime(RFC850));
 Serial.println("RFC3339:     " + UTC.dateTime(RFC3339));
@@ -95,7 +95,7 @@ Serial.println("or like " + UTC.dateTime("l ~t~h~e jS ~o~f F Y, g:i A") );
 
 ```
 COOKIE:      Saturday, 25-Aug-2018 14:23:45 UTC
-IS8601:      2018-08-25T14:23:45+0000
+ISO8601:      2018-08-25T14:23:45+0000
 RFC822:      Sat, 25 Aug 18 14:23:45 +0000
 RFC850:      Saturday, 25-Aug-18 14:23:45 UTC
 RFC3339:     2018-08-25T14:23:45+00:00
@@ -506,7 +506,7 @@ There are built-in values to specify some standard date and time formats. For ex
 |:------|:------|
 | ATOM        | 2018-08-25T14:23:45+00:00	
 | COOKIE      | Saturday, 25-Aug-2018 14:23:45 UTC
-| IS8601      | 2018-08-25T14:23:45+0000
+| ISO8601     | 2018-08-25T14:23:45+0000
 | RFC822      | Sat, 25 Aug 18 14:23:45 +0000
 | RFC850      | Saturday, 25-Aug-18 14:23:45 UTC
 | RFC1036     | Sat, 25 Aug 18 14:23:45 +0000	
