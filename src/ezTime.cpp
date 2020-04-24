@@ -644,6 +644,7 @@ time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, b
 		if (c && state == OFFSET_MIN) {
 			if (!isDigit(c)) {
 				state = DST_NAME;
+				dstname_begin = strpos;
 				ignore_nums = false;
 			} else {
 				if (!offset_min) offset_min = atoi(_posix.c_str() + strpos);
