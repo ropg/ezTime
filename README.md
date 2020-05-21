@@ -593,7 +593,7 @@ if (minuteChanged()) WriteToSomeDisplay(UTC.dateTime("H:i"));
 
 &nbsp;
 
-> Note that this uses a single variable interanly to store when the time was last accessed, so your code can only poll this in one place.
+> Note that this uses a single variable internally to store when the time was last accessed, so your code can only poll this in one place.
 
 ### names of days and months
 
