@@ -371,11 +371,18 @@ namespace ezt {
 	#ifdef EZTIME_NETWORK_ENABLE
 
 		void updateNTP() {
+			updateNTP(nullptr);
+		}
+
+		void updateNTP(int32_t *correction) {
 			deleteEvent(updateNTP);	// Delete any events pointing here, in case called manually
 			time_t t;
 			unsigned long measured_at;
 			if (queryNTP(_ntp_server, t, measured_at)) {
-				int32_t correction = ( (t - _last_sync_time) * 1000 ) - ( measured_at - _last_sync_millis );
+				int32_t lcorrection = ( (t - _last_sync_time) * 1000 ) - ( measured_at - _last_sync_millis );
+				if (correction) {
+					*correction = lcorrection;
+				}
 				_last_sync_time = t;
 				_last_sync_millis = measured_at;
 				_last_read_ms = ( millis() - measured_at) % 1000;
@@ -383,11 +390,11 @@ namespace ezt {
 				info(UTC.dateTime(t, F("l, d-M-y H:i:s.v T")));
 				if (_time_status != timeNotSet) {
 					info(F(" (internal clock was "));
-					if (!correction) {
+					if (!lcorrection) {
 						infoln(F("spot on)"));
 					} else {
-						info(String(abs(correction)));
-						if (correction > 0) {
+						info(String(abs(lcorrection)));
+						if (lcorrection > 0) {
 							infoln(F(" ms fast)"));
 						} else {
 							infoln(F(" ms slow)"));
