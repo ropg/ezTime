@@ -623,8 +623,6 @@ If you edit the ezTime.h file in the library directory and set the EZTIME_LANGUA
 
 This is what your loop functions should call if they want events executed. This includes user-set events (see below) and the NTP updates that ezTime does periodically. `events()` also calls the Arduino function `yield()`, so you do not need to call that anymore (but once more doesn't hurt).
 
-These events are meant for things that need to happen frequently. The next event cannot be more than 65 seconds out as the period between them is a 16-bit unsigned integer. If you use M5ez with ezTime, you can use [ezTime's events](https://github.com/ropg/ezTime#events) for things that need to happen with more time between them.
-
 &nbsp;
 
 ### setEvent
