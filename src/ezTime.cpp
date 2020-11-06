@@ -20,6 +20,9 @@
 		#include <SPI.h>
 		#include <Ethernet.h>
 		#include <EthernetUdp.h>
+	#elif defined(EZTIME_WIFIESP)
+		#include <WifiEsp.h>
+		#include <WifiEspUdp.h>
 	#else
 		#include <WiFi.h>
 		#include <WiFiUdp.h>
@@ -416,7 +419,11 @@ namespace ezt {
 
 			#ifndef EZTIME_ETHERNET
 				if (WiFi.status() != WL_CONNECTED) { triggerError(NO_NETWORK); return false; }
-				WiFiUDP udp;
+				#ifndef EZTIME_WIFIESP
+					WiFiUDP udp;
+				#else
+					WiFiEspUDP udp;
+				#endif
 			#else
 				EthernetUDP udp;
 			#endif
@@ -799,7 +806,11 @@ String Timezone::getPosix() { return _posix; }
 		
 		#ifndef EZTIME_ETHERNET
 			if (WiFi.status() != WL_CONNECTED) { triggerError(NO_NETWORK); return false; }
-			WiFiUDP udp;
+			#ifndef EZTIME_WIFIESP
+				WiFiUDP udp;
+			#else
+				WiFiEspUDP udp;
+			#endif
 		#else
 			EthernetUDP udp;
 		#endif

@@ -13,6 +13,9 @@
 // Arduino Ethernet shields
 // #define EZTIME_ETHERNET
 
+// Arduino board with ESP8266 shield
+// #define EZTIME_WIFIESP
+
 // Uncomment one of the below to only put only messages up to a certain level in the compiled code
 // (You still need to turn them on with setDebug(someLevel) to see them)
 // #define EZTIME_MAX_DEBUGLEVEL_NONE
