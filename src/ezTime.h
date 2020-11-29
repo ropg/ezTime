@@ -203,6 +203,7 @@ namespace ezt {
 		void setInterval(const uint16_t seconds = 0);
 		void setServer(const String ntp_server = NTP_SERVER);
 		void updateNTP();
+		void updateNTP(int32_t *correction);
 		bool waitForSync(const uint16_t timeout = 0);
 		time_t lastNtpUpdateTime();
 	#endif
