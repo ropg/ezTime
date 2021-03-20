@@ -1,0 +1,61 @@
+String monthStr(const uint8_t month) {
+	switch(month) {
+	case 1: return F("січень");
+	case 2: return F("лютий");
+	case 3: return F("березень");
+	case 4: return F("квітень");
+	case 5: return F("травень");
+	case 6: return F("червень");
+	case 7: return F("липень");
+	case 8: return F("серпень");
+	case 9: return F("вересень");
+	case 10: return F("жовтень");
+	case 11: return F("листопад");
+	case 12: return F("грудень");
+	}
+	return "";
+}
+
+String monthShortStr(const uint8_t month) { 
+	switch(month) {
+	case 1: return F("січ.");
+	case 2: return F("лют.");
+	case 3: return F("берез.");
+	case 4: return F("квіт.");
+	case 5: return F("трав.");
+	case 6: return F("черв.");
+	case 7: return F("лип.");
+	case 8: return F("серп.");
+	case 9: return F("верес.");
+	case 10: return F("жовт.");
+	case 11: return F("лист.");
+	case 12: return F("груд.");
+	}	
+	return "";
+}
+
+String dayStr(const uint8_t day) {
+	switch(day) {
+		case 1: return F("неділя");
+		case 2: return F("понеділок");
+		case 3: return F("вівторок");		
+		case 4: return F("середа");
+		case 5: return F("четвер");
+		case 6: return F("п'ятниця");
+		case 7: return F("субота");
+	}
+	return "";
+}
+
+String dayShortStr(const uint8_t day) {
+	switch(day) {
+		case 1: return F("Нд");
+		case 2: return F("Пн");
+		case 3: return F("Вт");		
+		case 4: return F("Ср");
+		case 5: return F("Чт");
+		case 6: return F("Пт");
+		case 7: return F("Сб");
+	}
+	return "";	
+}
