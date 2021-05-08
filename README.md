@@ -296,7 +296,7 @@ Note that this function is used internally by ezTime, but does not by itself set
 
 `IRAM_ATTR void syncToPPS();`
 
-Will sync the time on top of second to an external PPS signal, e.g. provided by a GPS chipset. This function is intended to be called by an interupt service routine, which typically would be fired by the PPS line.
+Will sync the time on top of second to an external PPS signal, e.g. provided by a GPS chipset. This function is intended to be called by an interupt service routine, which is triggered when the PPS line fires.
 
 &nbsp;
 
