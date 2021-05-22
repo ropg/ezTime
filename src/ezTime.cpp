@@ -1167,6 +1167,8 @@ void Timezone::setTime(const time_t t, const uint16_t ms /* = 0 */) {
 IRAM_ATTR void Timezone::syncToPPS() {
 	_last_sync_time ++;
 	_last_sync_millis = 0;
+	_last_read_t = _last_sync_time + millis() / 1000;
+  	_last_read_ms = millis() % 1000;
 }
 
 void Timezone::setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr) {
