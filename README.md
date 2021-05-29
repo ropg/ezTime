@@ -292,6 +292,14 @@ Note that this function is used internally by ezTime, but does not by itself set
 
 &nbsp;
 
+### *syncToPPS*
+
+`IRAM_ATTR void syncToPPS();`
+
+Will sync the time on top of second to an external PPS signal, e.g. provided by a GPS chipset. This function is intended to be called by an interupt service routine, which is triggered when the PPS line fires.
+
+&nbsp;
+
 ## Timezones
 
 > *If only it was as uncomplicated as this map suggests. Every band is actually made up of countries that all change to their Daylight Saving Time on different dates, and they even frequently change the rules for when that happens.*

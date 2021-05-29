@@ -1164,6 +1164,13 @@ void Timezone::setTime(const time_t t, const uint16_t ms /* = 0 */) {
 	_time_status = timeSet;
 }
 
+IRAM_ATTR void Timezone::syncToPPS() {
+	_last_sync_time ++;
+	_last_sync_millis = 0;
+	_last_read_t = _last_sync_time + millis() / 1000;
+  	_last_read_ms = millis() % 1000;
+}
+
 void Timezone::setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t mnth, uint16_t yr) {
 	tmElements_t tm;
 	// year can be given as full four digit year or two digts (2010 or 10 for 2010);  
@@ -1505,6 +1512,7 @@ namespace ezt {
 	uint8_t setEvent(void (*function)(), time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->setEvent(function, t, local_or_utc)); }
 	void setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, const uint8_t day, const uint8_t month, const uint16_t yr) { defaultTZ->setTime(hr, min, sec, day, month, yr); }
 	void setTime(time_t t) { defaultTZ->setTime(t); }
+	IRAM_ATTR void syncToPPS(void) { defaultTZ->syncToPPS(); }
 	uint8_t weekISO(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->weekISO(t, local_or_utc)); }
 	uint8_t weekday(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->weekday(t, local_or_utc)); }
 	uint16_t year(time_t t /* = TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) { return (defaultTZ->year(t, local_or_utc)); } 
