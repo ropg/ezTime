@@ -391,9 +391,9 @@ namespace ezt {
 					} else {
 						info(String(abs(correction)));
 						if (correction > 0) {
-							infoln(F(" ms fast)"));
-						} else {
 							infoln(F(" ms slow)"));
+						} else {
+							infoln(F(" ms fast)"));
 						}
 					}
 				} else {
