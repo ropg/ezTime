@@ -79,6 +79,8 @@ namespace {
 	#ifdef EZTIME_NETWORK_ENABLE
 		uint16_t _ntp_interval = NTP_INTERVAL;
 		String _ntp_server = NTP_SERVER;
+		String _timezone_server = TIMEZONED_REMOTE_HOST;
+		uint16_t _timezone_port = TIMEZONED_REMOTE_PORT;
 	#endif
 
 	void triggerError(const ezError_t err) {
@@ -518,6 +520,11 @@ namespace ezt {
 
 		void setServer(const String ntp_server /* = NTP_SERVER */) { _ntp_server = ntp_server; }
 
+		void setTimezoneServer(const String timezone_server /* = TIMEZONED_REMOTE_HOST */, const uint16_t timezone_port /* = TIMEZONED_REMOTE_PORT */) {
+			_timezone_server = timezone_server;
+			_timezone_port = timezone_port;
+		}
+
 		bool waitForSync(const uint16_t timeout /* = 0 */) {
 
 			unsigned long start = millis();
@@ -818,7 +825,7 @@ String Timezone::getPosix() { return _posix; }
 		udp.flush();
 		udp.begin(TIMEZONED_LOCAL_PORT);
 		unsigned long started = millis();
-		udp.beginPacket(TIMEZONED_REMOTE_HOST, TIMEZONED_REMOTE_PORT);
+		udp.beginPacket(_timezone_server.c_str(), _timezone_port);
 		udp.write((const uint8_t*)location.c_str(), location.length());
 		udp.endPacket();
 		

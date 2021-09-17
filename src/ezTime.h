@@ -202,6 +202,7 @@ namespace ezt {
 		bool queryNTP(const String server, time_t &t, unsigned long &measured_at);
 		void setInterval(const uint16_t seconds = 0);
 		void setServer(const String ntp_server = NTP_SERVER);
+		void setTimezoneServer(const String timezone_server = TIMEZONED_REMOTE_HOST, const uint16_t timezone_port = TIMEZONED_REMOTE_PORT);
 		void updateNTP();
 		bool waitForSync(const uint16_t timeout = 0);
 		time_t lastNtpUpdateTime();
