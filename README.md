@@ -264,6 +264,14 @@ By default, ezTime is set to poll `pool.ntp.org` about every 30 minutes. These d
 
 &nbsp;
 
+#### *setTimezoneServer*
+
+`void setTimezoneServer(String timezone_server = TIMEZONED_REMOTE_HOST, uint16_t timezone_port = TIMEZONED_REMOTE_PORT);`
+
+By default, ezTime uses [`timezoned.rop.nl`](#timezonedropnl) service to resolve timezone data when using [`setLocation`](#setlocation). You can switch to another server with `setTimezoneServer`.
+
+&nbsp;
+
 ### *updateNTP*
 
 `void updateNTP();`
@@ -1083,6 +1091,7 @@ ezTime 0.7.2 runs fine (No networking on board, so tested with NoNetwork example
 | [**`setLocation`**](#setlocation) | `bool` | `String location = ""` | yes | yes | no
 | [**`setPosix`**](#setposix) | `bool` | `String posix` | yes | yes | no
 | [**`setServer`**](#setserver-and-setinterval) | `void` | `String ntp_server = NTP_SERVER` | no | yes | no
+| [**`setTimezoneServer`**](#settimezoneserver) | `void` | `String timezone_server = TIMEZONED_REMOTE_HOST`, `uint16_t timezone_port = TIMEZONED_REMOTE_PORT` | no | yes | no
 | [**`setTime`**](#settime) | `void` | `time_t t`, `uint16_t ms = 0` | optional | no | no
 | [**`setTime`**](#settime) | `void` | `uint8_t hr`, `uint8_t min`, `uint8_t sec`, `uint8_t day`, `uint8_t mnth`, `uint16_t yr` | optional | no | no
 | [**`timeStatus`**](#timestatus) | `timeStatus_t` | | no | no | no
