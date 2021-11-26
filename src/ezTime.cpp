@@ -841,7 +841,7 @@ String Timezone::getPosix() { return _posix; }
 		info(F(" ms)  "));
 		if (recv.substring(0,6) == "ERROR ") {
 			_server_error = recv.substring(6);
-			error (SERVER_ERROR);
+			ezt::error(SERVER_ERROR);
 			return false;
 		}
 		if (recv.substring(0,3) == "OK ") {
