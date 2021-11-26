@@ -856,7 +856,7 @@ String Timezone::getPosix() { return _posix; }
 			#endif
 			return true;
 		}
-		error (DATA_NOT_FOUND);
+		ezt::error (DATA_NOT_FOUND);
 		return false;
 	}
 	
