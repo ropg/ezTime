@@ -841,7 +841,7 @@ String Timezone::getPosix() { return _posix; }
 		info(F(" ms)  "));
 		if (recv.substring(0,6) == "ERROR ") {
 			_server_error = recv.substring(6);
-			error (SERVER_ERROR);
+			ezt::error(SERVER_ERROR);
 			return false;
 		}
 		if (recv.substring(0,3) == "OK ") {
@@ -856,7 +856,7 @@ String Timezone::getPosix() { return _posix; }
 			#endif
 			return true;
 		}
-		error (DATA_NOT_FOUND);
+		ezt::error (DATA_NOT_FOUND);
 		return false;
 	}
 	
@@ -919,6 +919,7 @@ String Timezone::getPosix() { return _posix; }
 		void Timezone::clearCache(const bool delete_section /* = false */) {
 		
 			#ifdef EZTIME_CACHE_EEPROM
+				(void)delete_section; // UNUSED_PARAMETER(delete_section);
 				eepromBegin();
 				if (_eeprom_address < 0) { triggerError(NO_CACHE_SET); return; }
 				for (int16_t n = _eeprom_address; n < _eeprom_address + EEPROM_CACHE_LEN; n++) EEPROM.write(n, 0);
