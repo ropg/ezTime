@@ -18,8 +18,13 @@
 		#include <WiFiUdp.h>
 	#elif defined(EZTIME_ETHERNET)
 		#include <SPI.h>
-		#include <Ethernet.h>
-		#include <EthernetUdp.h>
+		#if defined(ARDUINO_TEENSY41) // Teensy 4.1
+			#include <NativeEthernet.h>
+			#include <NativeEthernetUdp.h>
+		#else
+			#include <Ethernet.h>
+			#include <EthernetUdp.h>
+		#endif
 	#elif defined(EZTIME_WIFIESP)
 		#include <WifiEsp.h>
 		#include <WifiEspUdp.h>
