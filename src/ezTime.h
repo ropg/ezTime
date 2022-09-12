@@ -143,6 +143,7 @@ typedef struct {
 #define LAST_READ				(int32_t)0x7FFFFFFE			// (So yes, ezTime might malfunction two seconds before everything else...)
 
 #define NTP_PACKET_SIZE			48
+#define NTP_CTRL_PACKET_SIZE	12
 #define NTP_LOCAL_PORT			4242
 #define NTP_SERVER				"pool.ntp.org"
 #define NTP_TIMEOUT				1500			// milliseconds
@@ -200,6 +201,7 @@ namespace ezt {
 
 	#ifdef EZTIME_NETWORK_ENABLE
 		bool queryNTP(const String server, time_t &t, unsigned long &measured_at);
+		bool readNTPVariable(const String var, String &result);		
 		void setInterval(const uint16_t seconds = 0);
 		void setServer(const String ntp_server = NTP_SERVER);
 		void updateNTP();

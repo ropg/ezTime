@@ -413,6 +413,7 @@ namespace ezt {
 		// It gives you the seconds since 1970 (unix epoch) and the millis() on your system when 
 		// that happened (by deducting fractional seconds and estimated network latency).
 		bool queryNTP(const String server, time_t &t, unsigned long &measured_at) {
+			unsigned int serverPoll;
 			info(F("Querying "));
 			info(server);
 			info(F(" ... "));
@@ -472,6 +473,19 @@ namespace ezt {
 				debug(F(", "));
 			}
 			debugln();
+			
+			//Examine server poll
+			serverPoll = 1 << (int)buffer[2];
+			
+			if (serverPoll > _ntp_interval)
+			{
+				// Slow our polling interval to match the requested interval
+				info(F("server asked for slower poll: "));
+				info(String(serverPoll));
+				infoln();
+				
+				setInterval(serverPoll);
+			}				
 
 			//prepare timestamps
 			uint32_t highWord, lowWord;	
@@ -509,6 +523,94 @@ namespace ezt {
 				
 			return true;
 		}
+		
+		// Reads a variable from an NTP server using control packets
+		bool readNTPVariable(const String var, String &result) {
+			short suffix_length;
+			char *dynRxBuf;
+			bool success = false;
+			info(F("Reading var "));
+			info(var.c_str());
+			info(F(" ... "));
+
+			#ifndef EZTIME_ETHERNET
+				if (WiFi.status() != WL_CONNECTED) { triggerError(NO_NETWORK); return false; }
+				WiFiUDP udp;
+			#else
+				EthernetUDP udp;
+			#endif
+	
+			// Send NTP packet
+			byte buffer[NTP_CTRL_PACKET_SIZE];
+			memset(buffer, 0, NTP_CTRL_PACKET_SIZE);
+			buffer[0] = 0x1E;		// LI, Version(4), Mode(6/CONTROL)
+			buffer[1] = 0x02;       // Response, Error, More, Opcode(2/READ VARIABLE)
+	
+	        suffix_length = var.length();
+			
+			buffer[10] = ((char *)&suffix_length)[1]; // Swap bytes to make network order
+			buffer[11] = ((char *)&suffix_length)[0];
+
+			udp.flush();
+			udp.begin(NTP_LOCAL_PORT);
+			unsigned long started = millis();
+			udp.beginPacket(_ntp_server.c_str(), 123); //NTP requests are to port 123
+			udp.write(buffer, NTP_CTRL_PACKET_SIZE);
+			udp.write(var.c_str(), suffix_length);
+			udp.endPacket();
+
+			// Wait for packet or return false with timed out
+			while (!udp.parsePacket()) {
+				delay (1);
+				if (millis() - started > NTP_TIMEOUT) {
+					udp.stop();	
+					triggerError(TIMEOUT); 
+					return false;
+				}
+			}
+			udp.read(buffer, NTP_CTRL_PACKET_SIZE);
+	
+			//print out received packet for debug
+			int i;
+			debug(F("Received data:"));
+			for (i = 0; i < NTP_CTRL_PACKET_SIZE; i++) {
+				if ((i % 4) == 0) {
+					debugln();
+					debug(String(i) + ": ");
+				}
+				debug(buffer[i], HEX);
+				debug(F(", "));
+			}
+			debugln();
+
+			// Swap length bytes back into local variable
+			((char *)&suffix_length)[1] = buffer[10];
+			((char *)&suffix_length)[0] = buffer[11];
+
+			debug(F("Server trailer: "));
+			debug(String(suffix_length));
+			debugln();
+			
+			if (suffix_length > 0 && suffix_length < 500)
+			{
+				dynRxBuf = (char *)malloc(suffix_length);
+				
+				if (dynRxBuf)
+				{
+					udp.read(dynRxBuf, suffix_length);
+					dynRxBuf[suffix_length] = 0;       // Inject null terminator
+					
+					result = String(dynRxBuf);
+					free(dynRxBuf);
+					success = true;
+				}
+			}
+
+			udp.stop();													// On AVR there's only very limited sockets, we want to free them when done.
+				
+			return success;
+		}
+		
 
 		void setInterval(const uint16_t seconds /* = 0 */) { 
 			deleteEvent(updateNTP);
