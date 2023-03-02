@@ -18,8 +18,7 @@
 		#include <WiFiUdp.h>
 	#elif defined(EZTIME_ETHERNET)
 		#include <SPI.h>
-		#include <Ethernet.h>
-		#include <EthernetUdp.h>
+		#include <ETH.h>
 	#elif defined(EZTIME_WIFIESP)
 		#include <WifiEsp.h>
 		#include <WifiEspUdp.h>
@@ -425,7 +424,7 @@ namespace ezt {
 					WiFiEspUDP udp;
 				#endif
 			#else
-				EthernetUDP udp;
+				WiFiUDP udp;  
 			#endif
 	
 			// Send NTP packet
@@ -812,7 +811,7 @@ String Timezone::getPosix() { return _posix; }
 				WiFiEspUDP udp;
 			#endif
 		#else
-			EthernetUDP udp;
+			WiFiUDP udp;  
 		#endif
 		
 		udp.flush();

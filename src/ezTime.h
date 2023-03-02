@@ -5,13 +5,13 @@
 #define _EZTIME_H_
 
 //Sets the language for the names of Months and Days. See the src/lang directory for supported languages
-#define EZTIME_LANGUAGE EN
+#define EZTIME_LANGUAGE FR
 
 // Compiles in NTP updating, timezoned fetching and caching 
 #define EZTIME_NETWORK_ENABLE
 
 // Arduino Ethernet shields
-// #define EZTIME_ETHERNET
+ #define EZTIME_ETHERNET
 
 // Arduino board with ESP8266 shield
 // #define EZTIME_WIFIESP
