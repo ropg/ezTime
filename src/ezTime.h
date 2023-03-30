@@ -197,6 +197,7 @@ namespace ezt {
 	timeStatus_t timeStatus();
 	String urlEncode(const String str);
 	String zeropad(const uint32_t number, const uint8_t length);
+	bool hourChanged();
 
 	#ifdef EZTIME_NETWORK_ENABLE
 		bool queryNTP(const String server, time_t &t, unsigned long &measured_at);
