@@ -370,6 +370,11 @@ namespace ezt {
 		return false;
 	}
 
+	bool hourChanged() {
+		time_t t = nowUTC(false);
+		if (_last_read_t / 60 / 60 != t / 60 / 60) return true;
+		return false;
+	}       
 
 	#ifdef EZTIME_NETWORK_ENABLE
 
