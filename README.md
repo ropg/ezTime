@@ -300,7 +300,7 @@ Note that this function is used internally by ezTime, but does not by itself set
 
 Timezones in ezTime are objects. They can be created with `Timezone yourTZ`, where `yourTZ` is the name you choose to refer to the timezone. In this manual, this name will be used from now on. But you can naturally choose any name you want.
 
-Internally, ezTime stores everything it knows about a timezone as two strings. One is the official name of the timezone in "Olson" format (like `Europe/Berlin`). That name is used to then update when needed all the other information needed to represent time in that timezone. This is in another string, in so-called "posix" format. It's often a little longer and for Berlin it is `CET-1CEST,M3.5.0,M10.5.0/3`. The elements of this string have the following meanings:
+Internally, ezTime stores everything it knows about a timezone as two strings. One is the official name of the timezone in "Olson" format (like `Europe/Berlin`). That name is used to then update when needed all the other information needed to represent time in that timezone. This is in another string, in so-called "posix" format. It's often a little longer and for Berlin it is `CET-1CEST,M3.5.0/2,M10.5.0/3`. The elements of this string have the following meanings:
 
 | Element | meaning |
 | ---- | ---- |
