@@ -93,7 +93,7 @@ while(1)
 
 	$parts = explode("#", $packet, 2);
 	$query = $parts[0];
-	$version = $parts[1];
+	// $version = $parts[1];
 	$process = strtoupper(str_replace(" ", "_", $query));
 	
 	$logstart = date("D, d M Y H:i:s") . "Z -- $remote_ip:$remote_port --";
