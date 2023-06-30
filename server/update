@@ -1,21 +1,34 @@
 #!/bin/sh
 
-rm -rf ~timezoned/download
-mkdir ~timezoned/download
+cd ~timezoned
 
-rm -rf ~timezoned/zoneinfo
-mkdir ~timezoned/zoneinfo
+# Clear work environment
+if [ -e "download" ]; then rm -rf download; fi
+mkdir download
 
+if [ -e "zoneinfo" ]; then rm -rf zoneinfo; fi
+mkdir zoneinfo
+
+# Download TZ data
 cd ~timezoned/download
 
 wget ftp://ftp.iana.org/tz/tzdata-latest.tar.gz
 tar zxvf tzdata-latest.tar.gz
 rm tzdata-latest.tar.gz
-for i in `ls`; do zic -d ~timezoned/zoneinfo $i;done
 
-rm ~timezoned/posixinfo
+# Process TZ data
 
+for f in `grep -l "# tzdb data" *`; do zic -d ~timezoned/zoneinfo $f; done
+zic -d ~timezoned/zoneinfo backward
+
+# POSIX info
 cd ~timezoned/zoneinfo
+
+if [ -e "posixinfo" ]; then
+	rm posixinfo
+	touch posixinfo
+fi
+
 for i in `find *|grep /`
 do
 	if [ -f $i ]; then

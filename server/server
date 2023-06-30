@@ -12,7 +12,7 @@ if ($file = fopen("/home/timezoned/posixinfo", "r")) {
     while(!feof($file)) {
         $line = fgets($file);
 		preg_match("/^(.*?) (.*?)$/", $line, $matches);
-		if ($matches[1] != "" && $matches[2] != "") {
+		if (count($matches) >= 2 && $matches[1] != "" && $matches[2] != "") {
 			array_push($tz, array("olsen" => trim($matches[1]), "posix" => trim($matches[2])));
 		}
     }
@@ -93,7 +93,7 @@ while(1)
 
 	$parts = explode("#", $packet, 2);
 	$query = $parts[0];
-	$version = $parts[1];
+	// $version = $parts[1];
 	$process = strtoupper(str_replace(" ", "_", $query));
 	
 	$logstart = date("D, d M Y H:i:s") . "Z -- $remote_ip:$remote_port --";
@@ -164,3 +164,5 @@ while(1)
 }
  
 socket_close($sock);
+
+?>
