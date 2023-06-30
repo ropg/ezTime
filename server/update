@@ -27,6 +27,7 @@ cd ~timezoned/zoneinfo
 if [ -e "posixinfo" ]; then
 	rm posixinfo
 	touch posixinfo
+fi
 
 for i in `find *|grep /`
 do
