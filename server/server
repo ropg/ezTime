@@ -12,7 +12,7 @@ if ($file = fopen("/home/timezoned/posixinfo", "r")) {
     while(!feof($file)) {
         $line = fgets($file);
 		preg_match("/^(.*?) (.*?)$/", $line, $matches);
-		if ($matches[1] != "" && $matches[2] != "") {
+		if (count($matches) >= 2 && $matches[1] != "" && $matches[2] != "") {
 			array_push($tz, array("olsen" => trim($matches[1]), "posix" => trim($matches[2])));
 		}
     }
@@ -164,3 +164,5 @@ while(1)
 }
  
 socket_close($sock);
+
+?>
