@@ -145,7 +145,7 @@ typedef struct {
 #define NTP_PACKET_SIZE			48
 #define NTP_LOCAL_PORT			4242
 #define NTP_SERVER				"pool.ntp.org"
-#define NTP_TIMEOUT				1500			// milliseconds
+#define NTP_TIMEOUT				3000			// milliseconds
 #define NTP_INTERVAL			1801				// default update interval in seconds
 #define NTP_RETRY				20				// Retry after this many seconds on failed NTP
 #define NTP_STALE_AFTER			3602				// If update due for this many seconds, set timeStatus to timeNeedsSync
@@ -153,7 +153,7 @@ typedef struct {
 #define TIMEZONED_REMOTE_HOST	"timezoned.rop.nl"
 #define TIMEZONED_REMOTE_PORT	2342
 #define TIMEZONED_LOCAL_PORT	2342
-#define TIMEZONED_TIMEOUT		2000			// milliseconds
+#define TIMEZONED_TIMEOUT		5000			// milliseconds
 
 #define EEPROM_CACHE_LEN		50
 #define MAX_CACHE_PAYLOAD		((EEPROM_CACHE_LEN - 3) / 3) * 4 + ( (EEPROM_CACHE_LEN - 3) % 3)	// 2 bytes for len and date, then 4 to 3 (6-bit) compression on rest 

@@ -602,10 +602,12 @@ time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, b
 		t = _last_read_t;
 		local_or_utc = UTC_TIME;
 	}
-	
+	bool no_dst_time = true;
+	bool zerolabel=false;
+	bool zerolabel_dst=false;
 	int8_t offset_hr = 0;
 	uint8_t offset_min = 0;
-	int8_t dst_shift_hr = 1;
+	int8_t dst_shift_hr = 0;
 	uint8_t dst_shift_min = 0;
 	
 	uint8_t start_month = 0, start_week = 0, start_dow = 0, start_time_hr = 2, start_time_min = 0;
@@ -631,6 +633,9 @@ time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, b
 			if (c == '<') ignore_nums = true;
 			if (c == '>') ignore_nums = false;
 			if (!ignore_nums && (isDigit(c) || c == '-'  || c == '+')) {
+					if(c == '-'){
+						zerolabel=true;
+					}
 				state = OFFSET_HR;
 				stdname_end = strpos - 1;
 			}
@@ -665,6 +670,9 @@ time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, b
 				c = 0;
 				dstname_end = strpos - 1;
 			} else if (!ignore_nums && (c == '-' || isDigit(c))) {
+				if(c == '-'){
+						zerolabel_dst=true;
+					}
 				state = DST_SHIFT_HR;
 				dstname_end = strpos - 1;
 			}
@@ -676,7 +684,10 @@ time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, b
 			} else if (c == ',') {
 				state = START_MONTH;
 				c = 0;
-			} else if (dst_shift_hr == 1) dst_shift_hr = atoi(_posix.c_str() + strpos);
+			} else if((!dst_shift_hr)){ 
+				dst_shift_hr = atoi(_posix.c_str() + strpos);
+				no_dst_time = false;
+			}
 		}			
 		if (c && state == DST_SHIFT_MIN) {
 			if (c == ',') {
@@ -751,15 +762,26 @@ time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, b
 	}	
 	
 	int16_t std_offset = (offset_hr < 0) ? offset_hr * 60 - offset_min : offset_hr * 60 + offset_min;
-	
+		if(zerolabel){
+		std_offset = offset_hr * 60 - offset_min;
+		}
 	tzname = _posix.substring(0, stdname_end + 1);	// Overwritten with dstname later if needed
 	if (!start_month) {
 		if (tzname == "UTC" && std_offset) tzname = "???";
 		is_dst = false;
 		offset = std_offset;
 	} else {
-		int16_t dst_offset = std_offset - dst_shift_hr * 60 - dst_shift_min;
-		// to find the year
+		//int16_t dst_offset = std_offset - dst_shift_hr * 60 - dst_shift_min;
+		int16_t dst_offset = 0;
+		if(no_dst_time){
+			dst_offset = std_offset - 60 ;
+		}else{
+			dst_offset = (dst_shift_hr < 0) ? dst_shift_hr * 60 - dst_shift_min : dst_shift_hr * 60 + dst_shift_min;
+			if(zerolabel_dst){
+				dst_offset = dst_shift_hr * 60 - dst_shift_min;
+			}
+		}
+	  // to find the year
 		tmElements_t tm;
 		ezt::breakTime(t, tm);	
 		
