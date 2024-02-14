@@ -5,7 +5,9 @@
 #define _EZTIME_H_
 
 //Sets the language for the names of Months and Days. See the src/lang directory for supported languages
+#ifndef EZTIME_LANGUAGE
 #define EZTIME_LANGUAGE EN
+#endif
 
 // Compiles in NTP updating, timezoned fetching and caching 
 #define EZTIME_NETWORK_ENABLE
