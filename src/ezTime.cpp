@@ -583,9 +583,9 @@ bool Timezone::setPosix(const String posix) {
 	return true;
 }
 
-time_t Timezone::now() { return tzTime(); }
+time_t Timezone::now() const { return tzTime(); }
 
-time_t Timezone::tzTime(time_t t /* = TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+time_t Timezone::tzTime(time_t t /* = TIME_NOW */, ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	if (_locked_to_UTC) return nowUTC();	// just saving some time and memory
 	String tzname;
 	bool is_dst;
@@ -593,7 +593,7 @@ time_t Timezone::tzTime(time_t t /* = TIME_NOW */, ezLocalOrUTC_t local_or_utc /
 	return tzTime(t, local_or_utc, tzname, is_dst, offset);
 }
 
-time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, bool &is_dst, int16_t &offset) {
+time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, bool &is_dst, int16_t &offset) const {
 
 	if (t == TIME_NOW) {
 		t = nowUTC(); 
@@ -793,7 +793,7 @@ time_t Timezone::tzTime(time_t t, ezLocalOrUTC_t local_or_utc, String &tzname, b
 	}
 }
 
-String Timezone::getPosix() { return _posix; }
+String Timezone::getPosix() const { return _posix; }
 
 #ifdef EZTIME_NETWORK_ENABLE
 
@@ -861,11 +861,11 @@ String Timezone::getPosix() { return _posix; }
 	}
 	
 	
-	String Timezone::getOlson() {
+	String Timezone::getOlson() const {
 		return _olson;
 	}
 
-	String Timezone::getOlsen() {
+	String Timezone::getOlsen() const {
 		return _olson;
 	}	
 
@@ -1014,7 +1014,7 @@ String Timezone::getPosix() { return _posix; }
 		}
 	
 
-		bool Timezone::readCache(String &olson, String &posix, uint8_t &months_since_jan_2018) {
+		bool Timezone::readCache(String &olson, String &posix, uint8_t &months_since_jan_2018) const {
 
 			#ifdef EZTIME_CACHE_EEPROM
 				if (_eeprom_address < 0) { triggerError(NO_CACHE_SET); return false; }
@@ -1113,7 +1113,7 @@ void Timezone::setDefault() {
 	debug(F("Default timezone set to ")); debug(_olson); debug(F("  "));debugln(_posix);
 }
 
-bool Timezone::isDST(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+bool Timezone::isDST(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	String tzname;
 	bool is_dst;
 	int16_t offset;
@@ -1121,7 +1121,7 @@ bool Timezone::isDST(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc
 	return is_dst;
 }
 
-String Timezone::getTimezoneName(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+String Timezone::getTimezoneName(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	String tzname;
 	bool is_dst;
 	int16_t offset;
@@ -1129,7 +1129,7 @@ String Timezone::getTimezoneName(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t 
 	return tzname;
 }
 
-int16_t Timezone::getOffset(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+int16_t Timezone::getOffset(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	String tzname;
 	bool is_dst;
 	int16_t offset;
@@ -1182,15 +1182,15 @@ void Timezone::setTime(const uint8_t hr, const uint8_t min, const uint8_t sec, c
 	setTime(ezt::makeTime(tm));
 }
 
-String Timezone::dateTime(const String format /* = DEFAULT_TIMEFORMAT */) {
+String Timezone::dateTime(const String format /* = DEFAULT_TIMEFORMAT */) const {
 	return dateTime(TIME_NOW, format);
 }
 
-String Timezone::dateTime(const time_t t, const String format /* = DEFAULT_TIMEFORMAT */) {
+String Timezone::dateTime(const time_t t, const String format /* = DEFAULT_TIMEFORMAT */) const {
 	return dateTime(t, LOCAL_TIME, format);
 }
 
-String Timezone::dateTime(time_t t, const ezLocalOrUTC_t local_or_utc, const String format /* = DEFAULT_TIMEFORMAT */) {
+String Timezone::dateTime(time_t t, const ezLocalOrUTC_t local_or_utc, const String format /* = DEFAULT_TIMEFORMAT */) const {
 
 	String tzname;
 	bool is_dst;
@@ -1363,7 +1363,7 @@ String Timezone::dateTime(time_t t, const ezLocalOrUTC_t local_or_utc, const Str
 	return out;
 }
 
-String Timezone::militaryTZ(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+String Timezone::militaryTZ(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	t = tzTime(t, local_or_utc);
 	int16_t o = getOffset(t);
 	if (o % 60) return "?"; // If it's not a whole hour from UTC, it's not a timezone with a military letter code
@@ -1375,75 +1375,75 @@ String Timezone::militaryTZ(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local
 }
 
 
-uint8_t Timezone::hour(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+uint8_t Timezone::hour(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	t = tzTime(t, local_or_utc);
 	return t / 3600 % 24;
 }
 
-uint8_t Timezone::minute(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+uint8_t Timezone::minute(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	t = tzTime(t, local_or_utc);
 	return t / 60 % 60;
 }
 
-uint8_t Timezone::second(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+uint8_t Timezone::second(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	t = tzTime(t, local_or_utc);
 	return t % 60;
 }
 
-uint16_t Timezone::ms(time_t t /*= TIME_NOW */) {
+uint16_t Timezone::ms(time_t t /*= TIME_NOW */) const {
 	// Note that here passing anything but TIME_NOW or LAST_READ is pointless
 	if (t == TIME_NOW) { nowUTC(); return _last_read_ms; }
 	if (t == LAST_READ) return _last_read_ms;
 	return 0;
 }
 
-uint8_t Timezone::day(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+uint8_t Timezone::day(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	t = tzTime(t, local_or_utc);
 	tmElements_t tm;
 	ezt::breakTime(t, tm);
 	return tm.Day;
 }
 
-uint8_t Timezone::weekday(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+uint8_t Timezone::weekday(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	t = tzTime(t, local_or_utc);
 	tmElements_t tm;
 	ezt::breakTime(t, tm);
 	return tm.Wday;
 }
 
-uint8_t Timezone::month(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+uint8_t Timezone::month(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	t = tzTime(t, local_or_utc);
 	tmElements_t tm;
 	ezt::breakTime(t, tm);
 	return tm.Month;
 }
 
-uint16_t Timezone::year(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+uint16_t Timezone::year(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	t = tzTime(t, local_or_utc);
 	tmElements_t tm;
 	ezt::breakTime(t, tm);
 	return tm.Year + 1970;
 }
 
-uint16_t Timezone::dayOfYear(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+uint16_t Timezone::dayOfYear(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	t = tzTime(t, local_or_utc);
 	time_t jan_1st = ezt::makeTime(0, 0, 0, 1, 1, year(t));
 	return (t - jan_1st) / SECS_PER_DAY;
 }
 
-uint8_t Timezone::hourFormat12(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+uint8_t Timezone::hourFormat12(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	t = tzTime(t, local_or_utc);
 	uint8_t h = t / 3600 % 12;
 	if (h) return h;
 	return 12;
 }
 
-bool Timezone::isAM(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+bool Timezone::isAM(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	t = tzTime(t, local_or_utc);
 	return (t / 3600 % 24 < 12);
 }
 
-bool Timezone::isPM(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+bool Timezone::isPM(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	t = tzTime(t, local_or_utc);
 	return (t / 3600 % 24 >= 12);
 }
@@ -1456,7 +1456,7 @@ bool Timezone::isPM(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc 
 // See https://en.wikipedia.org/wiki/ISO_week_date
 //
 #define startISOyear(year...) ezt::makeOrdinalTime(0, 0, 0, FIRST, THURSDAY, JANUARY, year) - 3UL * SECS_PER_DAY;
-uint8_t Timezone::weekISO(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+uint8_t Timezone::weekISO(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	t = tzTime(t, local_or_utc);
 	int16_t yr = year(t);
 	time_t this_year = startISOyear(yr);
@@ -1467,7 +1467,7 @@ uint8_t Timezone::weekISO(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_o
 	return (t - this_year) / ( SECS_PER_DAY * 7UL) + 1;
 }
 
-uint16_t Timezone::yearISO(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) {
+uint16_t Timezone::yearISO(time_t t /*= TIME_NOW */, const ezLocalOrUTC_t local_or_utc /* = LOCAL_TIME */) const {
 	t = tzTime(t, local_or_utc);
 	int16_t yr = year(t);
 	time_t this_year = startISOyear(yr);
